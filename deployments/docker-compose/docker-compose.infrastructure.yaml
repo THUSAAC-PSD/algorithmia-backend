@@ -1,0 +1,20 @@
+name: algorithmia-backend
+
+services:
+  postgres:
+    image: postgres:latest
+    pull_policy: missing
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - ${POSTGRES_HOST_PORT:-5432}:${POSTGRES_PORT:-5432}
+    #https://docs.docker.com/compose/environment-variables/env-file/#parameter-expansion
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    networks:
+      - algorithmia-backend
+
+networks:
+  algorithmia-backend:
+    name: algorithmia-backend
