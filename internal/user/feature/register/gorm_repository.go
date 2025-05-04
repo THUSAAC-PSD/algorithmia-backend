@@ -48,7 +48,9 @@ func (r *GormRepository) CheckAndDeleteEmailVerificationCode(
 	code string,
 ) (bool, error) {
 	var count int64
-	if err := r.db.WithContext(ctx).Model(&database.EmailVerificationCode{}).Where("email = ? AND code = ?", email, code).Count(&count).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&database.EmailVerificationCode{}).
+		Where("email = ? AND code = ? AND created_at >= NOW() - INTERVAL '10' MINUTE", email, code).
+		Count(&count).Error; err != nil {
 		return false, errors.WrapIf(err, "failed to check email verification code")
 	}
 

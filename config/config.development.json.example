@@ -21,9 +21,15 @@
   "gormOptions": {
     "host": "localhost",
     "port": 5432,
-    "user": "jsph273",
+    "user": "",
     "password": "",
     "dbName": "algorithmia",
     "sslMode": false
+  },
+  "gomailOptions": {
+    "host": "live.smtp.mailtrap.io",
+    "port": 587,
+    "username": "api",
+    "password": ""
   }
 }

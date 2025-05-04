@@ -2,8 +2,10 @@ package applicationbuilder
 
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/gomail"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared"
 
 	"emperror.dev/errors"
@@ -13,19 +15,24 @@ import (
 )
 
 func (b *ApplicationBuilder) AddUsers() error {
-	err := b.addRoutes()
-	if err != nil {
+	if err := b.addRoutes(); err != nil {
 		return err
 	}
 
-	err = b.addRepositories()
-	if err != nil {
+	if err := b.addRepositories(); err != nil {
 		return err
 	}
 
-	err = b.addPasswordHasher()
-	if err != nil {
-		return err
+	if err := b.Container.Provide(func() (register.PasswordHasher, error) {
+		return register.ArgonPasswordHasher{}, nil
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide password hasher")
+	}
+
+	if err := b.Container.Provide(func(opts *gomail.Options) (requestemailverification.EmailSender, error) {
+		return requestemailverification.NewGomailEmailSender(opts)
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide gomail email sender")
 	}
 
 	return nil
@@ -53,8 +60,9 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 	err = b.Container.Provide(func(ep *shared.UserEndpointParams) ([]contract.Endpoint, error) {
 		registerEndpoint := register.NewEndpoint(ep)
+		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(ep)
 
-		endpoints := []contract.Endpoint{registerEndpoint}
+		endpoints := []contract.Endpoint{registerEndpoint, requestEmailVerificationEndpoint}
 		return endpoints, nil
 	})
 
@@ -65,14 +73,16 @@ func (b *ApplicationBuilder) addRepositories() error {
 	err := b.Container.Provide(func(g *gorm.DB) (register.Repository, error) {
 		return register.NewGormRepository(g), nil
 	})
+	if err != nil {
+		return errors.WrapIf(err, "failed to provide register repository")
+	}
 
-	return errors.WrapIf(err, "failed to provide user repositories")
-}
-
-func (b *ApplicationBuilder) addPasswordHasher() error {
-	err := b.Container.Provide(func() (register.PasswordHasher, error) {
-		return register.ArgonPasswordHasher{}, nil
+	err = b.Container.Provide(func(g *gorm.DB) (requestemailverification.Repository, error) {
+		return requestemailverification.NewGormRepository(g), nil
 	})
+	if err != nil {
+		return errors.WrapIf(err, "failed to provide request email verification repository")
+	}
 
-	return errors.WrapIf(err, "failed to provide password hasher")
+	return nil
 }
