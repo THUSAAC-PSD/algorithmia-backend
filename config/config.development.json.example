@@ -1,7 +1,4 @@
 {
-  "appOptions": {
-    "name": "algorithmia-backend"
-  },
   "logOptions": {
     "level": "debug",
     "logType": 0,
@@ -16,7 +13,8 @@
     "host": "http://localhost",
     "debugHeaders": true,
     "httpClientDebug": true,
-    "debugErrorsResponse": true
+    "debugErrorsResponse": true,
+    "sessionSecret": ""
   },
   "gormOptions": {
     "host": "localhost",

@@ -12,6 +12,7 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/config"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	defaultLogger "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger/defaultlogger"
 
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
@@ -27,16 +28,15 @@ type Application struct {
 
 func NewApplication(container *dig.Container) *Application {
 	app := &Application{}
-	err := container.Invoke(func(c *config.Config, e *echo.Echo, logger logger.Logger) error {
+	if err := container.Invoke(func(c *config.Config, e *echo.Echo, logger logger.Logger) error {
 		app.Container = container
 		app.Echo = e
 		app.Logger = logger
 		app.Cfg = c
 
 		return nil
-	})
-	if err != nil {
-		app.Logger.Fatal(err)
+	}); err != nil {
+		defaultLogger.GetLogger().Fatal(err)
 	}
 
 	return app

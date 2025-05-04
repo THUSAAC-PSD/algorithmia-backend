@@ -18,7 +18,7 @@ type User struct {
 func NewUser(username, email, hashedPassword string) (User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
-		return User{}, errors.WrapIf(err, "failed to generate user ID")
+		return User{}, errors.WrapIf(err, "failed to generate user UserID")
 	}
 
 	return User{

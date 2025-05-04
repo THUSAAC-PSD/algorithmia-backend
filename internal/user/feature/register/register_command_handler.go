@@ -43,7 +43,7 @@ func (c *CommandHandler) Handle(
 	command *Command,
 ) (*Response, error) {
 	if command == nil {
-		return nil, customerror.ErrCommandNil
+		return nil, errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := c.validator.StructCtx(ctx, command); err != nil {

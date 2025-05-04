@@ -89,8 +89,6 @@ func EchoLogger(l logger.Logger, opts ...Option) echo.MiddlewareFunc {
 				"user_agent": req.UserAgent(),
 			}
 
-			fmt.Printf("error: %v\n", err)
-
 			if err != nil {
 				fields["error"] = err
 				fmt.Printf("%+v", err)

@@ -1,4 +1,4 @@
-package requestemailverification
+package login
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func NewEndpoint(params *shared.UserEndpointParams) *Endpoint {
 }
 
 func (e *Endpoint) MapEndpoint() {
-	e.AuthGroup.POST("/email-verification", e.handle())
+	e.AuthGroup.POST("/login", e.handle())
 }
 
 func (e *Endpoint) handle() echo.HandlerFunc {
@@ -42,8 +42,8 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			command,
 		)
 
-		if errors.Is(err, ErrEmailTimedOut) {
-			return httperror.New(http.StatusTooManyRequests, 103, "email timed out")
+		if errors.Is(err, ErrInvalidCredentials) {
+			return httperror.New(http.StatusUnauthorized, 100, "invalid credentials")
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, 200, fmt.Sprintf("error in sending command: %s", err.Error()))
 		}
