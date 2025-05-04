@@ -2,8 +2,10 @@ package register
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/constant"
 
 	"emperror.dev/errors"
 	"gorm.io/gorm"
@@ -49,7 +51,7 @@ func (r *GormRepository) CheckAndDeleteEmailVerificationCode(
 ) (bool, error) {
 	var count int64
 	if err := r.db.WithContext(ctx).Model(&database.EmailVerificationCode{}).
-		Where("email = ? AND code = ? AND created_at >= NOW() - INTERVAL '10' MINUTE", email, code).
+		Where(fmt.Sprintf("email = ? AND code = ? AND created_at >= NOW() - INTERVAL '%d' MINUTE", constant.EmailVerificationValidDurationMins), email, code).
 		Count(&count).Error; err != nil {
 		return false, errors.WrapIf(err, "failed to check email verification code")
 	}

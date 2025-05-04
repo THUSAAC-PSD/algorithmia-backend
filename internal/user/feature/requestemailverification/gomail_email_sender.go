@@ -5,6 +5,7 @@ import (
 	"html/template"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/mailing"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/constant"
 
 	"emperror.dev/errors"
 	gomailpkg "github.com/wneessen/go-mail"
@@ -46,9 +47,11 @@ func (s *GomailEmailSender) SendVerificationEmail(ctx context.Context, email str
 		"您好！\n\n感谢您使用清华大学学生算法协会 (THUSAAC) 的服务。您正在进行邮箱验证。\n\n您的邮箱验证码是：\n\n{{.Code}}\n\n请在 10 分钟内 将此验证码输入到验证页面，以完成您的操作。\n\n---\n安全提示：\n为保障您的账户安全，请勿将此验证码分享给任何人。如果您并未请求此验证码，请忽略本邮件，您的账户仍然是安全的。\n---\n\n此致，\n清华大学学生算法协会 (THUSAAC) 团队\n\n这是一封自动发送的邮件，请勿直接回复。",
 	)
 	if err := message.AddAlternativeHTMLTemplate(s.bodyHTMLTemplate, struct {
-		Code string
+		Code              string
+		ValidDurationMins int
 	}{
-		Code: code,
+		Code:              code,
+		ValidDurationMins: constant.EmailVerificationValidDurationMins,
 	}); err != nil {
 		return errors.WrapIf(err, "failed to set HTML body")
 	}

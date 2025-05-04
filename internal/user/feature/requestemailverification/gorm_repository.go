@@ -2,6 +2,7 @@ package requestemailverification
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
 
@@ -42,7 +43,7 @@ func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email 
 func (r *GormRepository) IsNotTimedOut(ctx context.Context, email string) (bool, error) {
 	var count int64
 	if err := r.db.WithContext(ctx).Model(&database.EmailVerificationCode{}).
-		Where("email = ? AND created_at >= NOW() - INTERVAL '1' MINUTE", email).
+		Where(fmt.Sprintf("email = ? AND created_at >= NOW() - INTERVAL '%d' MINUTE", timeoutDurationMins), email).
 		Count(&count).Error; err != nil {
 		return false, errors.WrapIf(err, "failed to check if email is not timed out")
 	}
