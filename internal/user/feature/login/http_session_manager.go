@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/gob"
 
+	ctxmiddleware "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb/middleware/context"
+
 	"emperror.dev/errors"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
 )
 
 type sessionUser struct {
@@ -28,8 +29,8 @@ func NewHTTPSessionManager() *HTTPSessionManager {
 }
 
 func (m *HTTPSessionManager) SetUser(ctx context.Context, user User) error {
-	eCtx, ok := ctx.Value("echo.context").(echo.Context)
-	if !ok {
+	eCtx := ctxmiddleware.FromContext(ctx)
+	if eCtx == nil {
 		return errors.New("echo context not found")
 	}
 

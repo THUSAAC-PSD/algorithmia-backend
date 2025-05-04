@@ -1,4 +1,4 @@
-package gomail
+package mailing
 
 import "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config"
 

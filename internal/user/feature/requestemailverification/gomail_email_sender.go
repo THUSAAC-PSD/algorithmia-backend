@@ -4,18 +4,18 @@ import (
 	"context"
 	"html/template"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/gomail"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/mailing"
 
 	"emperror.dev/errors"
 	gomailpkg "github.com/wneessen/go-mail"
 )
 
 type GomailEmailSender struct {
-	opts             *gomail.Options
+	opts             *mailing.Options
 	bodyHTMLTemplate *template.Template
 }
 
-func NewGomailEmailSender(opts *gomail.Options) (*GomailEmailSender, error) {
+func NewGomailEmailSender(opts *mailing.Options) (*GomailEmailSender, error) {
 	tmpl, err := template.ParseFiles("internal/user/feature/requestemailverification/email_template.gohtml")
 	if err != nil {
 		return nil, errors.WrapIf(err, "failed to parse email template")

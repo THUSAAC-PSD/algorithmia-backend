@@ -1,4 +1,4 @@
-package gomail
+package mailing
 
 import (
 	"emperror.dev/errors"

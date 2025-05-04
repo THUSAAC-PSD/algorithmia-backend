@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/app/application"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config/environment"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/environment"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
 	"github.com/spf13/viper"
@@ -37,7 +36,7 @@ func NewApplicationBuilder(environments ...environment.Environment) *Application
 	}
 
 	setConfigPath()
-	err = config.AddEnv(container, environments...)
+	err = environment.AddEnv(container, environments...)
 	if err != nil {
 		log.Fatalln(err)
 	}

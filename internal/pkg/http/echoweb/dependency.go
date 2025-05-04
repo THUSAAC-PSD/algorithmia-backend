@@ -3,7 +3,6 @@ package echoweb
 import (
 	"strings"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/config"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb/middleware/context"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb/middleware/log"
@@ -19,7 +18,13 @@ import (
 )
 
 func AddEcho(container *dig.Container) error {
-	err := container.Provide(func(l logger.Logger, opts *config.Config) *echo.Echo {
+	if err := container.Provide(func() (*Options, error) {
+		return ProvideConfig()
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide echo options")
+	}
+
+	err := container.Provide(func(l logger.Logger, opts *Options) *echo.Echo {
 		e := echo.New()
 		e.HideBanner = true
 
@@ -45,7 +50,7 @@ func AddEcho(container *dig.Container) error {
 			Level:   constant.GzipLevel,
 			Skipper: skipper,
 		}))
-		e.Use(session.Middleware(sessions.NewCookieStore([]byte(opts.EchoHTTPOptions.SessionSecret))))
+		e.Use(session.Middleware(sessions.NewCookieStore([]byte(opts.SessionSecret))))
 
 		return e
 	})

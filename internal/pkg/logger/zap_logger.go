@@ -3,7 +3,7 @@ package logger
 import (
 	"os"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config/environment"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/environment"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -13,7 +13,7 @@ type zapLogger struct {
 	level       string
 	sugarLogger *zap.SugaredLogger
 	logger      *zap.Logger
-	logOptions  *LogOptions
+	logOptions  *Options
 }
 
 type ZapLogger interface {
@@ -35,7 +35,7 @@ var loggerLevelMap = map[string]zapcore.Level{
 }
 
 func NewZapLogger(
-	cfg *LogOptions,
+	cfg *Options,
 	env environment.Environment,
 ) Logger {
 	zapLogger := &zapLogger{level: cfg.LogLevel, logOptions: cfg}

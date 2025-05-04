@@ -2,8 +2,8 @@ package applicationbuilder
 
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/gomail"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/mailing"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
@@ -37,7 +37,7 @@ func (b *ApplicationBuilder) AddUsers() error {
 		return errors.WrapIf(err, "failed to provide password checker")
 	}
 
-	if err := b.Container.Provide(func(opts *gomail.Options) (requestemailverification.EmailSender, error) {
+	if err := b.Container.Provide(func(opts *mailing.Options) (requestemailverification.EmailSender, error) {
 		return requestemailverification.NewGomailEmailSender(opts)
 	}); err != nil {
 		return errors.WrapIf(err, "failed to provide gomail email sender")

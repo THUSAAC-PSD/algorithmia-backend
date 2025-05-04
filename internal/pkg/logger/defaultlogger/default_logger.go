@@ -9,7 +9,7 @@ var l logger.Logger
 
 func initLogger() {
 	l = logger.NewZapLogger(
-		&logger.LogOptions{CallerEnabled: false},
+		&logger.Options{CallerEnabled: false},
 		constant.Dev,
 	)
 }

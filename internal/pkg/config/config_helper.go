@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config/environment"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/environment"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/reflection/typemapper"
 
 	"emperror.dev/errors"

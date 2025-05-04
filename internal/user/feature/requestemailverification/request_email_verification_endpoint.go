@@ -44,6 +44,8 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 
 		if errors.Is(err, ErrEmailTimedOut) {
 			return httperror.New(http.StatusTooManyRequests, 103, "email timed out")
+		} else if errors.Is(err, ErrEmailAssociatedWithUser) {
+			return httperror.New(http.StatusUnprocessableEntity, 102, "email already associated with user")
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, 200, fmt.Sprintf("error in sending command: %s", err.Error()))
 		}

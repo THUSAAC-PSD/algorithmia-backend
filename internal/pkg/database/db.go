@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database/options"
 	defaultLogger "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger/defaultlogger"
 
 	"emperror.dev/errors"
@@ -13,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewGorm(cfg *options.GormOptions) (*gorm.DB, error) {
+func NewGorm(cfg *Options) (*gorm.DB, error) {
 	if cfg.DBName == "" {
 		return nil, errors.New("missing DBName in gorm configuration")
 	}
@@ -76,7 +75,7 @@ func createSQLLiteDB(dbFilePath string) (*gorm.DB, error) {
 	return gormSQLLiteDB, err
 }
 
-func createPostgresDB(cfg *options.GormOptions) error {
+func createPostgresDB(cfg *Options) error {
 	var db *sql.DB
 
 	// we should choose a default database in the connection, but because we don't have a database yet we specify postgres default database 'postgres'

@@ -1,4 +1,4 @@
-package options
+package database
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config"
 )
 
-type GormOptions struct {
+type Options struct {
 	Host        string `mapstructure:"host"`
 	Port        int    `mapstructure:"port"`
 	User        string `mapstructure:"user"`
@@ -17,7 +17,7 @@ type GormOptions struct {
 	UseSQLLite  bool   `mapstructure:"useSqlLite"`
 }
 
-func (h *GormOptions) DNS() string {
+func (h *Options) DNS() string {
 	datasource := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		h.User,
 		h.Password,
@@ -29,6 +29,6 @@ func (h *GormOptions) DNS() string {
 	return datasource
 }
 
-func ProvideConfig() (*GormOptions, error) {
-	return config.BindConfigKey[*GormOptions]("gormOptions")
+func ProvideConfig() (*Options, error) {
+	return config.BindConfigKey[*Options]("gormOptions")
 }

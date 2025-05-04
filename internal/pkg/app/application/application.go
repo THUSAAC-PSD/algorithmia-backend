@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/config"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	defaultLogger "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger/defaultlogger"
 
@@ -20,19 +20,19 @@ import (
 )
 
 type Application struct {
-	Container *dig.Container
-	Echo      *echo.Echo
-	Logger    logger.Logger
-	Cfg       *config.Config
+	Container   *dig.Container
+	Echo        *echo.Echo
+	Logger      logger.Logger
+	EchoOptions *echoweb.Options
 }
 
 func NewApplication(container *dig.Container) *Application {
 	app := &Application{}
-	if err := container.Invoke(func(c *config.Config, e *echo.Echo, logger logger.Logger) error {
+	if err := container.Invoke(func(opts *echoweb.Options, e *echo.Echo, logger logger.Logger) error {
 		app.Container = container
 		app.Echo = e
 		app.Logger = logger
-		app.Cfg = c
+		app.EchoOptions = opts
 
 		return nil
 	}); err != nil {
@@ -83,7 +83,7 @@ func (a *Application) Wait() <-chan os.Signal {
 
 func echoStartHook(application *Application) {
 	go func() {
-		if err := application.Echo.Start(application.Cfg.EchoHTTPOptions.Port); !errors.Is(err, http.ErrServerClosed) {
+		if err := application.Echo.Start(application.EchoOptions.Port); !errors.Is(err, http.ErrServerClosed) {
 			application.Logger.Fatalf("HTTP server error: %v", err)
 		}
 		application.Logger.Info("Stopped serving new HTTP connections.")
