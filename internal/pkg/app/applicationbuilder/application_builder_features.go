@@ -9,6 +9,8 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	problemDifficultyShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
+	problemDraftShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
@@ -23,12 +25,12 @@ import (
 	"go.uber.org/dig"
 )
 
-func (b *ApplicationBuilder) AddUsers() error {
-	if err := b.addUserRoutes(); err != nil {
+func (b *ApplicationBuilder) AddFeatures() error {
+	if err := b.addRoutes(); err != nil {
 		return err
 	}
 
-	if err := b.addUserRepositories(); err != nil {
+	if err := b.addRepositories(); err != nil {
 		return err
 	}
 
@@ -52,7 +54,7 @@ func (b *ApplicationBuilder) AddUsers() error {
 	return nil
 }
 
-func (b *ApplicationBuilder) addUserRoutes() error {
+func (b *ApplicationBuilder) addRoutes() error {
 	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*userShared.UserEndpointParams, error) {
 		users := v1Group.Group.Group("/users")
 		auth := v1Group.Group.Group("/auth")
@@ -93,7 +95,20 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 		return errors.WrapIf(err, "failed to provide problem difficulty endpoint params")
 	}
 
-	if err := b.Container.Provide(func(uep *userShared.UserEndpointParams, cep *contestShared.ContestEndpointParams, pdep *problemDifficultyShared.ProblemDifficultyEndpointParams) ([]contract.Endpoint, error) {
+	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*problemDraftShared.ProblemDraftEndpointParams, error) {
+		problemDrafts := v1Group.Group.Group("/problem-drafts")
+
+		ep := &problemDraftShared.ProblemDraftEndpointParams{
+			ProblemDraftsGroup: problemDrafts,
+			Validator:          validator.New(),
+		}
+
+		return ep, nil
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide problem draft endpoint params")
+	}
+
+	if err := b.Container.Provide(func(uep *userShared.UserEndpointParams, cep *contestShared.ContestEndpointParams, pdep *problemDifficultyShared.ProblemDifficultyEndpointParams, pdrep *problemDraftShared.ProblemDraftEndpointParams) ([]contract.Endpoint, error) {
 		registerEndpoint := register.NewEndpoint(uep)
 		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(uep)
 		loginEndpoint := login.NewEndpoint(uep)
@@ -105,6 +120,8 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 		deleteContestEndpoint := deletecontest.NewEndpoint(cep)
 
 		listProblemDifficultyEndpoint := listproblemdifficulty.NewEndpoint(pdep)
+
+		upsertProblemDraftEndpoint := upsertproblemdraft.NewEndpoint(pdrep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -118,6 +135,8 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 			deleteContestEndpoint,
 
 			listProblemDifficultyEndpoint,
+
+			upsertProblemDraftEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -127,7 +146,7 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 	return nil
 }
 
-func (b *ApplicationBuilder) addUserRepositories() error {
+func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(register.NewGormRepository,
 		dig.As(new(register.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide register repository")
@@ -161,6 +180,11 @@ func (b *ApplicationBuilder) addUserRepositories() error {
 	if err := b.Container.Provide(listproblemdifficulty.NewGormRepository,
 		dig.As(new(listproblemdifficulty.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide list problem difficulty repository")
+	}
+
+	if err := b.Container.Provide(upsertproblemdraft.NewGormRepository,
+		dig.As(new(upsertproblemdraft.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide upsert problem draft repository")
 	}
 
 	return nil

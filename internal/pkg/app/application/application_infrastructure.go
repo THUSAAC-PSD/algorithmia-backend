@@ -59,6 +59,9 @@ func (a *Application) migrateDatabase() error {
 			&database.Contest{},
 			&database.ProblemDifficulty{},
 			&database.ProblemDifficultyDisplayName{},
+			&database.ProblemDraft{},
+			&database.ProblemDraftDetail{},
+			&database.ProblemDraftExample{},
 		)
 		if err != nil {
 			return err

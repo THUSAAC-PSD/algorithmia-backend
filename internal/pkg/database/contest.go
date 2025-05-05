@@ -14,4 +14,5 @@ type Contest struct {
 	MaxProblemCount  uint
 	DeadlineDatetime time.Time
 	CreatedAt        time.Time
+	DeletedAt        time.Time
 }

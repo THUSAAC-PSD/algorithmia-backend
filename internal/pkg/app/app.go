@@ -37,7 +37,7 @@ func createApplicationBuilder() *applicationbuilder.ApplicationBuilder {
 
 	builder.AddInfrastructure()
 
-	if err := builder.AddUsers(); err != nil {
+	if err := builder.AddFeatures(); err != nil {
 		builder.Logger.Fatal(err)
 	}
 
