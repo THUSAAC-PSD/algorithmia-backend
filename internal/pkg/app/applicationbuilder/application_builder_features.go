@@ -7,7 +7,8 @@ import (
 	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
+	problemDifficultyShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
@@ -52,12 +53,11 @@ func (b *ApplicationBuilder) AddUsers() error {
 }
 
 func (b *ApplicationBuilder) addUserRoutes() error {
-	if err := b.Container.Provide(func(e *echo.Echo, l logger.Logger, v1Group *echoweb.V1Group) (*userShared.UserEndpointParams, error) {
+	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*userShared.UserEndpointParams, error) {
 		users := v1Group.Group.Group("/users")
 		auth := v1Group.Group.Group("/auth")
 
 		ep := &userShared.UserEndpointParams{
-			Logger:     l,
 			Validator:  validator.New(),
 			UsersGroup: users,
 			AuthGroup:  auth,
@@ -68,11 +68,10 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 		return errors.WrapIf(err, "failed to provide user endpoint params")
 	}
 
-	if err := b.Container.Provide(func(e *echo.Echo, l logger.Logger, v1Group *echoweb.V1Group) (*contestShared.ContestEndpointParams, error) {
+	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*contestShared.ContestEndpointParams, error) {
 		contests := v1Group.Group.Group("/contests")
 
 		ep := &contestShared.ContestEndpointParams{
-			Logger:        l,
 			Validator:     validator.New(),
 			ContestsGroup: contests,
 		}
@@ -82,7 +81,19 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 		return errors.WrapIf(err, "failed to provide contest endpoint params")
 	}
 
-	if err := b.Container.Provide(func(uep *userShared.UserEndpointParams, cep *contestShared.ContestEndpointParams) ([]contract.Endpoint, error) {
+	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*problemDifficultyShared.ProblemDifficultyEndpointParams, error) {
+		problemDifficulties := v1Group.Group.Group("/problem-difficulties")
+
+		ep := &problemDifficultyShared.ProblemDifficultyEndpointParams{
+			ProblemDifficultiesGroup: problemDifficulties,
+		}
+
+		return ep, nil
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide problem difficulty endpoint params")
+	}
+
+	if err := b.Container.Provide(func(uep *userShared.UserEndpointParams, cep *contestShared.ContestEndpointParams, pdep *problemDifficultyShared.ProblemDifficultyEndpointParams) ([]contract.Endpoint, error) {
 		registerEndpoint := register.NewEndpoint(uep)
 		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(uep)
 		loginEndpoint := login.NewEndpoint(uep)
@@ -92,6 +103,8 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 		createContestEndpoint := createcontest.NewEndpoint(cep)
 		listContestEndpoint := listcontest.NewEndpoint(cep)
 		deleteContestEndpoint := deletecontest.NewEndpoint(cep)
+
+		listProblemDifficultyEndpoint := listproblemdifficulty.NewEndpoint(pdep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -103,6 +116,8 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 			createContestEndpoint,
 			listContestEndpoint,
 			deleteContestEndpoint,
+
+			listProblemDifficultyEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -141,6 +156,11 @@ func (b *ApplicationBuilder) addUserRepositories() error {
 	if err := b.Container.Provide(deletecontest.NewGormRepository,
 		dig.As(new(deletecontest.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide delete contest repository")
+	}
+
+	if err := b.Container.Provide(listproblemdifficulty.NewGormRepository,
+		dig.As(new(listproblemdifficulty.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem difficulty repository")
 	}
 
 	return nil

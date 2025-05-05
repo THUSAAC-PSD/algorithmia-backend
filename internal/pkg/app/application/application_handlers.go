@@ -6,6 +6,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
@@ -25,6 +26,7 @@ func (a *Application) ConfigMediator() error {
 		createContestRepo createcontest.Repository,
 		listContestRepo listcontest.Repository,
 		deleteContestRepo deletecontest.Repository,
+		listProblemDifficultyRepo listproblemdifficulty.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -85,6 +87,11 @@ func (a *Application) ConfigMediator() error {
 		deleteContestHandler := deletecontest.NewCommandHandler(deleteContestRepo, validator.New())
 		if err := mediatr.RegisterRequestHandler[*deletecontest.Command, mediatr.Unit](deleteContestHandler); err != nil {
 			return errors.WrapIf(err, "failed to register delete contest query handler")
+		}
+
+		listProblemDifficultyHandler := listproblemdifficulty.NewQueryHandler(listProblemDifficultyRepo)
+		if err := mediatr.RegisterRequestHandler[*listproblemdifficulty.Query, *listproblemdifficulty.Response](listProblemDifficultyHandler); err != nil {
+			return errors.WrapIf(err, "failed to register list problem difficulty query handler")
 		}
 
 		return nil
