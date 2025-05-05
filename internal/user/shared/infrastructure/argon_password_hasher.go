@@ -28,6 +28,10 @@ var defaultArgonParams = argonParams{
 
 type ArgonPasswordHasher struct{}
 
+func NewArgonPasswordHasher() ArgonPasswordHasher {
+	return ArgonPasswordHasher{}
+}
+
 func (h ArgonPasswordHasher) Hash(password string) (string, error) {
 	salt, err := h.generateRandomBytes(32)
 	if err != nil {

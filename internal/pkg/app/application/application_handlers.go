@@ -4,6 +4,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
 
@@ -20,7 +21,8 @@ func (a *Application) ConfigMediator() error {
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
-		sessionManager login.SessionManager,
+		loginSessionManager login.SessionManager,
+		logoutSessionManager logout.SessionManager,
 		uowFactory contract.UnitOfWorkFactory,
 		l logger.Logger,
 	) error {
@@ -43,13 +45,18 @@ func (a *Application) ConfigMediator() error {
 		loginHandler := login.NewCommandHandler(
 			loginRepo,
 			passwordChecker,
-			sessionManager,
+			loginSessionManager,
 			validator.New(),
 			uowFactory,
 			l,
 		)
 		if err := mediatr.RegisterRequestHandler[*login.Command, mediatr.Unit](loginHandler); err != nil {
 			return errors.WrapIf(err, "failed to register login command handler")
+		}
+
+		logoutHandler := logout.NewCommandHandler(logoutSessionManager)
+		if err := mediatr.RegisterRequestHandler[*logout.Command, mediatr.Unit](logoutHandler); err != nil {
+			return errors.WrapIf(err, "failed to register logout command handler")
 		}
 
 		return nil
