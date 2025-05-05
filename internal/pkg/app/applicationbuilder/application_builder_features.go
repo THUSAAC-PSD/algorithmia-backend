@@ -2,6 +2,7 @@ package applicationbuilder
 
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
@@ -90,6 +91,7 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 
 		createContestEndpoint := createcontest.NewEndpoint(cep)
 		listContestEndpoint := listcontest.NewEndpoint(cep)
+		deleteContestEndpoint := deletecontest.NewEndpoint(cep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -100,6 +102,7 @@ func (b *ApplicationBuilder) addUserRoutes() error {
 
 			createContestEndpoint,
 			listContestEndpoint,
+			deleteContestEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -133,6 +136,11 @@ func (b *ApplicationBuilder) addUserRepositories() error {
 	if err := b.Container.Provide(listcontest.NewGormRepository,
 		dig.As(new(listcontest.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide list contest repository")
+	}
+
+	if err := b.Container.Provide(deletecontest.NewGormRepository,
+		dig.As(new(deletecontest.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide delete contest repository")
 	}
 
 	return nil
