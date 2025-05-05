@@ -6,7 +6,10 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract/uowhelper"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -37,13 +40,23 @@ type CommandHandler struct {
 	repo        Repository
 	emailSender EmailSender
 	validator   *validator.Validate
+	uowFactory  contract.UnitOfWorkFactory
+	l           logger.Logger
 }
 
-func NewCommandHandler(repo Repository, emailSender EmailSender, validator *validator.Validate) *CommandHandler {
+func NewCommandHandler(
+	repo Repository,
+	emailSender EmailSender,
+	validator *validator.Validate,
+	uowFactory contract.UnitOfWorkFactory,
+	l logger.Logger,
+) *CommandHandler {
 	return &CommandHandler{
 		repo:        repo,
 		emailSender: emailSender,
 		validator:   validator,
+		uowFactory:  uowFactory,
+		l:           l,
 	}
 }
 
@@ -59,32 +72,35 @@ func (c *CommandHandler) Handle(
 		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
-	if ok, err := c.repo.IsNotTimedOut(ctx, command.Email); err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to check if email is not timed out")
-	} else if !ok {
-		return mediatr.Unit{}, errors.WithStack(ErrEmailTimedOut)
-	}
+	uow := c.uowFactory.New()
+	return uowhelper.DoWithResult(ctx, uow, c.l, func(ctx context.Context) (mediatr.Unit, error) {
+		if ok, err := c.repo.IsNotTimedOut(ctx, command.Email); err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if email is not timed out")
+		} else if !ok {
+			return mediatr.Unit{}, errors.WithStack(ErrEmailTimedOut)
+		}
 
-	if ok, err := c.repo.IsNotAssociatedWithUser(ctx, command.Email); err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to check if email is associated with user")
-	} else if !ok {
-		return mediatr.Unit{}, errors.WithStack(ErrEmailAssociatedWithUser)
-	}
+		if ok, err := c.repo.IsNotAssociatedWithUser(ctx, command.Email); err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if email is associated with user")
+		} else if !ok {
+			return mediatr.Unit{}, errors.WithStack(ErrEmailAssociatedWithUser)
+		}
 
-	code, err := c.generateVerificationCode()
-	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to generate verification code")
-	}
+		code, err := c.generateVerificationCode()
+		if err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to generate verification code")
+		}
 
-	if err := c.repo.CreateEmailVerificationCode(ctx, command.Email, code); err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to create email verification code")
-	}
+		if err := c.repo.CreateEmailVerificationCode(ctx, command.Email, code); err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to create email verification code")
+		}
 
-	if err := c.emailSender.SendVerificationEmail(ctx, command.Email, code); err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to send verification email")
-	}
+		if err := c.emailSender.SendVerificationEmail(ctx, command.Email, code); err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to send verification email")
+		}
 
-	return mediatr.Unit{}, nil
+		return mediatr.Unit{}, nil
+	})
 }
 
 func (c *CommandHandler) generateVerificationCode() (string, error) {

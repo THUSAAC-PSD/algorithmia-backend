@@ -3,7 +3,10 @@ package register
 import (
 	"context"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract/uowhelper"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -25,16 +28,26 @@ type Repository interface {
 }
 
 type CommandHandler struct {
-	repo      Repository
-	hasher    PasswordHasher
-	validator *validator.Validate
+	repo       Repository
+	hasher     PasswordHasher
+	validator  *validator.Validate
+	uowFactory contract.UnitOfWorkFactory
+	l          logger.Logger
 }
 
-func NewCommandHandler(repo Repository, hasher PasswordHasher, validator *validator.Validate) *CommandHandler {
+func NewCommandHandler(
+	repo Repository,
+	hasher PasswordHasher,
+	validator *validator.Validate,
+	uowFactory contract.UnitOfWorkFactory,
+	l logger.Logger,
+) *CommandHandler {
 	return &CommandHandler{
-		repo:      repo,
-		hasher:    hasher,
-		validator: validator,
+		repo:       repo,
+		hasher:     hasher,
+		validator:  validator,
+		uowFactory: uowFactory,
+		l:          l,
 	}
 }
 
@@ -50,45 +63,48 @@ func (c *CommandHandler) Handle(
 		return nil, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
-	ok, err := c.repo.IsUserUnique(ctx, command.Username, command.Email)
-	if err != nil {
-		return nil, errors.WrapIf(err, "failed to check if user is unique")
-	}
-	if !ok {
-		return nil, errors.WithStack(ErrUserAlreadyExists)
-	}
+	uow := c.uowFactory.New()
+	return uowhelper.DoWithResult(ctx, uow, c.l, func(ctx context.Context) (*Response, error) {
+		ok, err := c.repo.IsUserUnique(ctx, command.Username, command.Email)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to check if user is unique")
+		}
+		if !ok {
+			return nil, errors.WithStack(ErrUserAlreadyExists)
+		}
 
-	ok, err = c.repo.CheckAndDeleteEmailVerificationCode(ctx, command.Email, command.EmailVerificationCode)
-	if err != nil {
-		return nil, errors.WrapIf(err, "failed to check and delete email verification code")
-	}
-	if !ok {
-		return nil, errors.WithStack(ErrInvalidEmailVerificationCode)
-	}
+		ok, err = c.repo.CheckAndDeleteEmailVerificationCode(ctx, command.Email, command.EmailVerificationCode)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to check and delete email verification code")
+		}
+		if !ok {
+			return nil, errors.WithStack(ErrInvalidEmailVerificationCode)
+		}
 
-	hashedPassword, err := c.hasher.Hash(command.Password)
-	if err != nil {
-		return nil, errors.WrapIf(err, "failed to hash password")
-	}
+		hashedPassword, err := c.hasher.Hash(command.Password)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to hash password")
+		}
 
-	user, err := NewUser(command.Username, command.Email, hashedPassword)
-	if err != nil {
-		return nil, errors.WrapIf(err, "failed to initialize user")
-	}
+		user, err := NewUser(command.Username, command.Email, hashedPassword)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to initialize user")
+		}
 
-	err = c.repo.CreateUser(ctx, user)
-	if err != nil {
-		return nil, errors.WrapIf(err, "failed to create user")
-	}
+		err = c.repo.CreateUser(ctx, user)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to create user")
+		}
 
-	response := &Response{
-		User: ResponseUser{
-			UserID:    user.UserID,
-			Username:  user.Username,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
-		},
-	}
+		response := &Response{
+			User: ResponseUser{
+				UserID:    user.UserID,
+				Username:  user.Username,
+				Email:     user.Email,
+				CreatedAt: user.CreatedAt,
+			},
+		}
 
-	return response, nil
+		return response, nil
+	})
 }

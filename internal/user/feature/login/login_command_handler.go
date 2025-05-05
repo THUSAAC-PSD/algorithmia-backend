@@ -3,7 +3,10 @@ package login
 import (
 	"context"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract/uowhelper"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -33,6 +36,8 @@ type CommandHandler struct {
 	repo            Repository
 	passwordChecker PasswordChecker
 	sessionManager  SessionManager
+	uowFactory      contract.UnitOfWorkFactory
+	l               logger.Logger
 }
 
 func NewCommandHandler(
@@ -40,12 +45,16 @@ func NewCommandHandler(
 	passwordChecker PasswordChecker,
 	sessionManager SessionManager,
 	validator *validator.Validate,
+	uowFactory contract.UnitOfWorkFactory,
+	l logger.Logger,
 ) *CommandHandler {
 	return &CommandHandler{
 		repo:            repo,
 		passwordChecker: passwordChecker,
 		sessionManager:  sessionManager,
 		validator:       validator,
+		uowFactory:      uowFactory,
+		l:               l,
 	}
 }
 
@@ -58,25 +67,28 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.
 		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
-	user, err := h.repo.GetUserByUsername(ctx, command.Username)
-	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to get user by username")
-	} else if user == nil {
-		// Prevent attackers from knowing if the user exists
-		_, _ = h.passwordChecker.Check(someHashedPassword, command.Password)
-		return mediatr.Unit{}, errors.WithStack(ErrInvalidCredentials)
-	}
+	uow := h.uowFactory.New()
+	return uowhelper.DoWithResult(ctx, uow, h.l, func(ctx context.Context) (mediatr.Unit, error) {
+		user, err := h.repo.GetUserByUsername(ctx, command.Username)
+		if err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to get user by username")
+		} else if user == nil {
+			// Prevent attackers from knowing if the user exists
+			_, _ = h.passwordChecker.Check(someHashedPassword, command.Password)
+			return mediatr.Unit{}, errors.WithStack(ErrInvalidCredentials)
+		}
 
-	ok, err := h.passwordChecker.Check(user.HashedPassword, command.Password)
-	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to check password")
-	} else if !ok {
-		return mediatr.Unit{}, errors.WithStack(ErrInvalidCredentials)
-	}
+		ok, err := h.passwordChecker.Check(user.HashedPassword, command.Password)
+		if err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to check password")
+		} else if !ok {
+			return mediatr.Unit{}, errors.WithStack(ErrInvalidCredentials)
+		}
 
-	if err := h.sessionManager.SetUser(ctx, *user); err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to set user in session")
-	}
+		if err := h.sessionManager.SetUser(ctx, *user); err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to set user in session")
+		}
 
-	return mediatr.Unit{}, nil
+		return mediatr.Unit{}, nil
+	})
 }

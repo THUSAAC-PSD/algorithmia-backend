@@ -18,8 +18,10 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 }
 
 func (r *GormRepository) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
 	var user database.User
-	if err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // User not found
 		}

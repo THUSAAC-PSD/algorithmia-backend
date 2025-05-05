@@ -22,6 +22,8 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 }
 
 func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email string, code string) error {
+	db := database.GetDBFromContext(ctx, r.db)
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return errors.WrapIf(err, "failed to generate UUID")
@@ -33,7 +35,7 @@ func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email 
 		Code:                    code,
 	}
 
-	if err := r.db.WithContext(ctx).Create(model).Error; err != nil {
+	if err := db.WithContext(ctx).Create(model).Error; err != nil {
 		return errors.WrapIf(err, "failed to create email verification code")
 	}
 
@@ -41,8 +43,10 @@ func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email 
 }
 
 func (r *GormRepository) IsNotTimedOut(ctx context.Context, email string) (bool, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
 	var count int64
-	if err := r.db.WithContext(ctx).Model(&database.EmailVerificationCode{}).
+	if err := db.WithContext(ctx).Model(&database.EmailVerificationCode{}).
 		Where(fmt.Sprintf("email = ? AND created_at >= NOW() - INTERVAL '%d' MINUTE", timeoutDurationMins), email).
 		Count(&count).Error; err != nil {
 		return false, errors.WrapIf(err, "failed to check if email is not timed out")
@@ -52,8 +56,10 @@ func (r *GormRepository) IsNotTimedOut(ctx context.Context, email string) (bool,
 }
 
 func (r *GormRepository) IsNotAssociatedWithUser(ctx context.Context, email string) (bool, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
 	var count int64
-	if err := r.db.WithContext(ctx).Model(&database.User{}).
+	if err := db.WithContext(ctx).Model(&database.User{}).
 		Where("email = ?", email).
 		Count(&count).Error; err != nil {
 		return false, errors.WrapIf(err, "failed to check if email is not associated with user")
