@@ -2,30 +2,16 @@ package infrastructure
 
 import (
 	"context"
-	"encoding/gob"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	ctxmiddleware "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb/middleware/context"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 
 	"emperror.dev/errors"
-	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 )
-
-const (
-	sessionName = "session"
-)
-
-type sessionUser struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-}
-
-func init() {
-	gob.Register(sessionUser{})
-}
 
 type HTTPSessionManager struct{}
 
@@ -39,7 +25,7 @@ func (m *HTTPSessionManager) SetUser(ctx context.Context, user login.User) error
 		return errors.New("echo context not found")
 	}
 
-	sess, err := session.Get(sessionName, eCtx)
+	sess, err := session.Get(echoweb.SessionName, eCtx)
 	if err != nil {
 		return errors.WrapIf(err, "failed to get session")
 	}
@@ -50,7 +36,7 @@ func (m *HTTPSessionManager) SetUser(ctx context.Context, user login.User) error
 		HttpOnly: true,
 	}
 
-	sess.Values["user"] = sessionUser{
+	sess.Values[echoweb.SessionUserKey] = contract.AuthUser{
 		UserID:   user.UserID,
 		Username: user.Username,
 		Email:    user.Email,
@@ -69,7 +55,7 @@ func (m *HTTPSessionManager) Delete(ctx context.Context) error {
 		return errors.New("echo context not found")
 	}
 
-	sess, err := session.Get(sessionName, eCtx)
+	sess, err := session.Get(echoweb.SessionName, eCtx)
 	if err != nil {
 		return errors.WrapIf(err, "failed to get session")
 	}

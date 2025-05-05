@@ -2,29 +2,35 @@ package echoweb
 
 import (
 	"strings"
+	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb/middleware/context"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb/middleware/log"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
 	"emperror.dev/errors"
-	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/wader/gormstore/v2"
 	"go.uber.org/dig"
+	"gorm.io/gorm"
 )
 
 func AddEcho(container *dig.Container) error {
-	if err := container.Provide(func() (*Options, error) {
-		return ProvideConfig()
-	}); err != nil {
+	if err := container.Provide(ProvideConfig); err != nil {
 		return errors.WrapIf(err, "failed to provide echo options")
 	}
 
-	err := container.Provide(func(l logger.Logger, opts *Options) *echo.Echo {
+	if err := container.Provide(NewSessionAuthProvider,
+		dig.As(new(contract.AuthProvider))); err != nil {
+		return errors.WrapIf(err, "failed to provide session auth provider")
+	}
+
+	err := container.Provide(func(l logger.Logger, opts *Options, db *gorm.DB) *echo.Echo {
 		e := echo.New()
 		e.HideBanner = true
 
@@ -50,7 +56,13 @@ func AddEcho(container *dig.Container) error {
 			Level:   constant.GzipLevel,
 			Skipper: skipper,
 		}))
-		e.Use(session.Middleware(sessions.NewCookieStore([]byte(opts.SessionSecret))))
+
+		store := gormstore.New(db, []byte(opts.SessionSecret))
+
+		quit := make(chan struct{})
+		go store.PeriodicCleanup(1*time.Hour, quit)
+
+		e.Use(session.Middleware(store))
 
 		return e
 	})

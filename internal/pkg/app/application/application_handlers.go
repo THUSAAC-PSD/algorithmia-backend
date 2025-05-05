@@ -3,6 +3,7 @@ package application
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
@@ -25,6 +26,7 @@ func (a *Application) ConfigMediator() error {
 		logoutSessionManager logout.SessionManager,
 		uowFactory contract.UnitOfWorkFactory,
 		l logger.Logger,
+		authProvider contract.AuthProvider,
 	) error {
 		registerHandler := register.NewCommandHandler(registerRepo, passwordHasher, validator.New(), uowFactory, l)
 		if err := mediatr.RegisterRequestHandler[*register.Command, *register.Response](registerHandler); err != nil {
@@ -57,6 +59,11 @@ func (a *Application) ConfigMediator() error {
 		logoutHandler := logout.NewCommandHandler(logoutSessionManager)
 		if err := mediatr.RegisterRequestHandler[*logout.Command, mediatr.Unit](logoutHandler); err != nil {
 			return errors.WrapIf(err, "failed to register logout command handler")
+		}
+
+		getCurrentUserHandler := getcurrentuser.NewQueryHandler(authProvider)
+		if err := mediatr.RegisterRequestHandler[*getcurrentuser.Query, *getcurrentuser.Response](getCurrentUserHandler); err != nil {
+			return errors.WrapIf(err, "failed to register get current user query handler")
 		}
 
 		return nil

@@ -3,6 +3,7 @@ package httperror
 type ErrorType string
 
 const (
+	ErrTypeNotAuthenticated             ErrorType = "not_authenticated"
 	ErrTypeInvalidCredentials           ErrorType = "invalid_credentials"
 	ErrTypeUserAlreadyExists            ErrorType = "user_already_exists"
 	ErrTypeInvalidEmailVerificationCode ErrorType = "invalid_email_verification_code"

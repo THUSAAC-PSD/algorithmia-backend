@@ -121,5 +121,9 @@ func mapCustomErrorToHTTPError(err error) *HTTPError {
 		return New(http.StatusBadRequest, err.Error()).WithInternal(err)
 	}
 
+	if errors.Is(err, customerror.ErrNotAuthenticated) {
+		return New(http.StatusUnauthorized, err.Error()).WithInternal(err).WithType(ErrTypeNotAuthenticated)
+	}
+
 	return nil
 }

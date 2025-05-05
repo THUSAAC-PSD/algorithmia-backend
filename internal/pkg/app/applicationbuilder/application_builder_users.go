@@ -3,6 +3,7 @@ package applicationbuilder
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
@@ -70,12 +71,14 @@ func (b *ApplicationBuilder) addRoutes() error {
 		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(ep)
 		loginEndpoint := login.NewEndpoint(ep)
 		logoutEndpoint := logout.NewEndpoint(ep)
+		getCurrentUserEndpoint := getcurrentuser.NewEndpoint(ep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
 			requestEmailVerificationEndpoint,
 			loginEndpoint,
 			logoutEndpoint,
+			getCurrentUserEndpoint,
 		}
 		return endpoints, nil
 	})
