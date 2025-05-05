@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
@@ -21,6 +22,7 @@ func (a *Application) ConfigMediator() error {
 		requestEmailVerificationRepo requestemailverification.Repository,
 		loginRepo login.Repository,
 		createContestRepo createcontest.Repository,
+		listContestRepo listcontest.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -71,6 +73,11 @@ func (a *Application) ConfigMediator() error {
 		createContestHandler := createcontest.NewCommandHandler(createContestRepo, validator.New())
 		if err := mediatr.RegisterRequestHandler[*createcontest.Command, *createcontest.Response](createContestHandler); err != nil {
 			return errors.WrapIf(err, "failed to register create contest command handler")
+		}
+
+		listContestHandler := listcontest.NewQueryHandler(listContestRepo)
+		if err := mediatr.RegisterRequestHandler[*listcontest.Query, *listcontest.Response](listContestHandler); err != nil {
+			return errors.WrapIf(err, "failed to register list contest query handler")
 		}
 
 		return nil
