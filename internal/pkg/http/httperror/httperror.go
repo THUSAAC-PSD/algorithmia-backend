@@ -11,10 +11,10 @@ import (
 )
 
 type HTTPError struct {
-	Code       int    `json:"code"`
-	Message    string `json:"message"`
-	StatusCode int    `json:"-"`
-	Internal   error  `json:"-"`
+	Type       ErrorType `json:"type,omitempty"`
+	Message    string    `json:"message"`
+	StatusCode int       `json:"-"`
+	Internal   error     `json:"-"`
 }
 
 func (e *HTTPError) Error() string {
@@ -25,12 +25,16 @@ func (e *HTTPError) Unwrap() error {
 	return e.Internal
 }
 
-func New(statusCode int, code int, message string) *HTTPError {
+func New(statusCode int, message string) *HTTPError {
 	return &HTTPError{
 		StatusCode: statusCode,
-		Code:       code,
 		Message:    message,
 	}
+}
+
+func (e *HTTPError) WithType(t ErrorType) *HTTPError {
+	e.Type = t
+	return e
 }
 
 func (e *HTTPError) WithInternal(err error) *HTTPError {
@@ -70,15 +74,14 @@ func getRootCause(err error) error {
 
 // Handler processes errors for Echo
 func Handler(err error, c echo.Context) {
-	var response map[string]interface{}
+	var response any
 	statusCode := getStatusCode(err)
 
-	var customErr *HTTPError
-	if errors.As(err, &customErr) {
-		response = map[string]interface{}{
-			"code":    customErr.Code,
-			"message": customErr.Message,
-		}
+	var httpErr *HTTPError
+	if httpErr = mapCustomErrorToHTTPError(err); httpErr != nil {
+		response = httpErr
+	} else if errors.As(err, &httpErr); httpErr != nil {
+		response = httpErr
 	} else {
 		var echoErr *echo.HTTPError
 		if errors.As(err, &echoErr) {
@@ -87,16 +90,6 @@ func Handler(err error, c echo.Context) {
 				response = map[string]interface{}{"message": msg}
 			} else {
 				response = map[string]interface{}{"message": echoErr.Message}
-			}
-		} else if errors.Is(err, customerror.ErrValidationFailed) {
-			response = map[string]interface{}{
-				"code":    100,
-				"message": err.Error(),
-			}
-		} else if errors.Is(err, customerror.ErrCommandNil) {
-			response = map[string]interface{}{
-				"code":    200,
-				"message": err.Error(),
 			}
 		} else {
 			rootErr := getRootCause(err)
@@ -117,4 +110,16 @@ func Handler(err error, c echo.Context) {
 			c.Echo().Logger.Error(err)
 		}
 	}
+}
+
+func mapCustomErrorToHTTPError(err error) *HTTPError {
+	if errors.Is(err, customerror.ErrValidationFailed) {
+		return New(http.StatusBadRequest, err.Error()).WithInternal(err)
+	}
+
+	if errors.Is(err, customerror.ErrCommandNil) {
+		return New(http.StatusBadRequest, err.Error()).WithInternal(err)
+	}
+
+	return nil
 }

@@ -1,7 +1,6 @@
 package register
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
@@ -30,11 +29,11 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		command := &Command{}
 		if err := ctx.Bind(command); err != nil {
-			return httperror.New(http.StatusBadRequest, 100, "invalid request")
+			return httperror.New(http.StatusBadRequest, "Invalid request format")
 		}
 
 		if err := e.Validator.StructCtx(ctx.Request().Context(), command); err != nil {
-			return httperror.New(http.StatusBadRequest, 100, fmt.Sprintf("validation error: %s", err.Error()))
+			return httperror.New(http.StatusBadRequest, err.Error()).WithInternal(err)
 		}
 
 		result, err := mediatr.Send[*Command, *Response](
@@ -43,11 +42,12 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 		)
 
 		if errors.Is(err, ErrUserAlreadyExists) {
-			return httperror.New(http.StatusConflict, 101, "user already exists")
+			return httperror.New(http.StatusConflict, "Username and email must be unique").
+				WithType(httperror.ErrTypeUserAlreadyExists)
 		} else if errors.Is(err, ErrInvalidEmailVerificationCode) {
-			return httperror.New(http.StatusBadRequest, 102, "invalid email verification code")
+			return httperror.New(http.StatusUnprocessableEntity, "The provided email verification code is invalid").WithType(httperror.ErrTypeInvalidEmailVerificationCode)
 		} else if err != nil {
-			return httperror.New(http.StatusInternalServerError, 200, fmt.Sprintf("error in sending command: %s", err.Error()))
+			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}
 
 		return ctx.JSON(http.StatusCreated, result)
