@@ -46,7 +46,7 @@ func (a *Application) mapEndpoints() error {
 
 func (a *Application) migrateDatabase() error {
 	return a.ResolveDependencyFunc(func(g *gorm.DB) error {
-		err := g.AutoMigrate(&database.User{}, &database.EmailVerificationCode{})
+		err := g.AutoMigrate(&database.User{}, &database.EmailVerificationCode{}, &database.Contest{})
 		if err != nil {
 			return err
 		}

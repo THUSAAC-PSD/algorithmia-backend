@@ -28,11 +28,12 @@ func (s *SessionAuthProvider) GetUser(ctx context.Context) (*contract.AuthUser, 
 		return nil, errors.WrapIf(err, "failed to get session")
 	}
 
-	if user, ok := sess.Values[SessionUserKey].(contract.AuthUser); !ok || user.Username == "" || user.Email == "" {
+	user, ok := sess.Values[SessionUserKey].(contract.AuthUser)
+	if !ok || user.Username == "" || user.Email == "" {
 		return nil, nil
-	} else {
-		return &user, nil
 	}
+
+	return &user, nil
 }
 
 func (s *SessionAuthProvider) MustGetUser(ctx context.Context) (contract.AuthUser, error) {

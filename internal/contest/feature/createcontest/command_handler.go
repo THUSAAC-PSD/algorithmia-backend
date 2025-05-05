@@ -1,0 +1,55 @@
+package createcontest
+
+import (
+	"context"
+
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
+
+	"emperror.dev/errors"
+	"github.com/go-playground/validator"
+)
+
+type Repository interface {
+	CreateContest(ctx context.Context, contest Contest) error
+}
+
+type CommandHandler struct {
+	repo      Repository
+	validator *validator.Validate
+}
+
+func NewCommandHandler(repo Repository, validator *validator.Validate) *CommandHandler {
+	return &CommandHandler{
+		repo:      repo,
+		validator: validator,
+	}
+}
+
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Response, error) {
+	if command == nil {
+		return nil, errors.WithStack(customerror.ErrCommandNil)
+	}
+
+	if err := h.validator.Struct(command); err != nil {
+		return nil, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+	}
+
+	contest, err := NewContest(
+		command.Title,
+		command.Description,
+		command.MinProblemCount,
+		command.MaxProblemCount,
+		command.DeadlineDatetime,
+	)
+	if err != nil {
+		return nil, errors.WrapIf(err, "failed to create contest")
+	}
+
+	if err := h.repo.CreateContest(ctx, contest); err != nil {
+		return nil, errors.WrapIf(err, "failed to create contest in repository")
+	}
+
+	return &Response{
+		Contest: contest,
+	}, nil
+}

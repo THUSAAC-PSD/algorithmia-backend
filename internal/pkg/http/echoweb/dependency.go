@@ -30,7 +30,7 @@ func AddEcho(container *dig.Container) error {
 		return errors.WrapIf(err, "failed to provide session auth provider")
 	}
 
-	err := container.Provide(func(l logger.Logger, opts *Options, db *gorm.DB) *echo.Echo {
+	if err := container.Provide(func(l logger.Logger, opts *Options, db *gorm.DB) *echo.Echo {
 		e := echo.New()
 		e.HideBanner = true
 
@@ -65,6 +65,13 @@ func AddEcho(container *dig.Container) error {
 		e.Use(session.Middleware(store))
 
 		return e
-	})
-	return errors.WrapIf(err, "failed to provide echo instance")
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide echo instance")
+	}
+
+	if err := container.Provide(NewV1Group); err != nil {
+		return errors.WrapIf(err, "failed to provide v1 group")
+	}
+
+	return nil
 }

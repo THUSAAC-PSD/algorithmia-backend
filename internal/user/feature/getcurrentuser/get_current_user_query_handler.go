@@ -35,7 +35,7 @@ func (h *QueryHandler) Handle(
 	}
 
 	return &Response{
-		User: User{
+		User: ResponseUser{
 			UserID:   user.UserID,
 			Username: user.Username,
 			Email:    user.Email,

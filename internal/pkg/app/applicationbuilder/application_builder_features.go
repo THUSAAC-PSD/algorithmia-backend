@@ -1,14 +1,17 @@
 package applicationbuilder
 
 import (
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
+	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared"
+	userShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/infrastructure"
 
 	"emperror.dev/errors"
@@ -18,11 +21,11 @@ import (
 )
 
 func (b *ApplicationBuilder) AddUsers() error {
-	if err := b.addRoutes(); err != nil {
+	if err := b.addUserRoutes(); err != nil {
 		return err
 	}
 
-	if err := b.addRepositories(); err != nil {
+	if err := b.addUserRepositories(); err != nil {
 		return err
 	}
 
@@ -46,14 +49,12 @@ func (b *ApplicationBuilder) AddUsers() error {
 	return nil
 }
 
-func (b *ApplicationBuilder) addRoutes() error {
-	err := b.Container.Provide(func(e *echo.Echo, l logger.Logger) (*shared.UserEndpointParams, error) {
-		v1 := e.Group("/api/v1")
+func (b *ApplicationBuilder) addUserRoutes() error {
+	if err := b.Container.Provide(func(e *echo.Echo, l logger.Logger, v1Group *echoweb.V1Group) (*userShared.UserEndpointParams, error) {
+		users := v1Group.Group.Group("/users")
+		auth := v1Group.Group.Group("/auth")
 
-		users := v1.Group("/users")
-		auth := v1.Group("/auth")
-
-		ep := &shared.UserEndpointParams{
+		ep := &userShared.UserEndpointParams{
 			Logger:     l,
 			Validator:  validator.New(),
 			UsersGroup: users,
@@ -61,17 +62,32 @@ func (b *ApplicationBuilder) addRoutes() error {
 		}
 
 		return ep, nil
-	})
-	if err != nil {
+	}); err != nil {
 		return errors.WrapIf(err, "failed to provide user endpoint params")
 	}
 
-	err = b.Container.Provide(func(ep *shared.UserEndpointParams) ([]contract.Endpoint, error) {
-		registerEndpoint := register.NewEndpoint(ep)
-		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(ep)
-		loginEndpoint := login.NewEndpoint(ep)
-		logoutEndpoint := logout.NewEndpoint(ep)
-		getCurrentUserEndpoint := getcurrentuser.NewEndpoint(ep)
+	if err := b.Container.Provide(func(e *echo.Echo, l logger.Logger, v1Group *echoweb.V1Group) (*contestShared.ContestEndpointParams, error) {
+		contests := v1Group.Group.Group("/contests")
+
+		ep := &contestShared.ContestEndpointParams{
+			Logger:        l,
+			Validator:     validator.New(),
+			ContestsGroup: contests,
+		}
+
+		return ep, nil
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide contest endpoint params")
+	}
+
+	if err := b.Container.Provide(func(uep *userShared.UserEndpointParams, cep *contestShared.ContestEndpointParams) ([]contract.Endpoint, error) {
+		registerEndpoint := register.NewEndpoint(uep)
+		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(uep)
+		loginEndpoint := login.NewEndpoint(uep)
+		logoutEndpoint := logout.NewEndpoint(uep)
+		getCurrentUserEndpoint := getcurrentuser.NewEndpoint(uep)
+
+		createContestEndpoint := createcontest.NewEndpoint(cep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -79,14 +95,18 @@ func (b *ApplicationBuilder) addRoutes() error {
 			loginEndpoint,
 			logoutEndpoint,
 			getCurrentUserEndpoint,
+
+			createContestEndpoint,
 		}
 		return endpoints, nil
-	})
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide endpoints")
+	}
 
-	return errors.WrapIf(err, "failed to provide user endpoints")
+	return nil
 }
 
-func (b *ApplicationBuilder) addRepositories() error {
+func (b *ApplicationBuilder) addUserRepositories() error {
 	if err := b.Container.Provide(register.NewGormRepository,
 		dig.As(new(register.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide register repository")
@@ -100,6 +120,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(login.NewGormRepository,
 		dig.As(new(login.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide login repository")
+	}
+
+	if err := b.Container.Provide(createcontest.NewGormRepository,
+		dig.As(new(createcontest.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide create contest repository")
 	}
 
 	return nil
