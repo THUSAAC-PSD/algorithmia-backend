@@ -6,6 +6,7 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -26,7 +27,7 @@ type Repository interface {
 		creatorID uuid.UUID,
 		exampleIDs []uuid.UUID,
 		detailIDs []uuid.UUID,
-	) (*ResponseProblemDraft, error)
+	) (*dto.ProblemDraft, error)
 }
 
 type CommandHandler struct {

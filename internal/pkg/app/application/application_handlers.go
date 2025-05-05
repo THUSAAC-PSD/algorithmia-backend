@@ -7,6 +7,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
@@ -29,6 +30,7 @@ func (a *Application) ConfigMediator() error {
 		deleteContestRepo deletecontest.Repository,
 		listProblemDifficultyRepo listproblemdifficulty.Repository,
 		upsertProblemDraftRepo upsertproblemdraft.Repository,
+		listProblemDraftRepo listproblemdraft.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -103,6 +105,11 @@ func (a *Application) ConfigMediator() error {
 		)
 		if err := mediatr.RegisterRequestHandler[*upsertproblemdraft.Command, *upsertproblemdraft.Response](upsertProblemDraftHandler); err != nil {
 			return errors.WrapIf(err, "failed to register upsert problem draft query handler")
+		}
+
+		listProblemDraftHandler := listproblemdraft.NewQueryHandler(listProblemDraftRepo, authProvider)
+		if err := mediatr.RegisterRequestHandler[*listproblemdraft.Query, *listproblemdraft.Response](listProblemDraftHandler); err != nil {
+			return errors.WrapIf(err, "failed to register list problem draft query handler")
 		}
 
 		return nil

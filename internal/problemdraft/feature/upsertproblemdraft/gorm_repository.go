@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ func (r *GormRepository) UpsertProblemDraft(
 	creatorID uuid.UUID,
 	exampleIDs []uuid.UUID,
 	detailIDs []uuid.UUID,
-) (*ResponseProblemDraft, error) {
+) (*dto.ProblemDraft, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 
 	if !command.ProblemDraftID.Valid {
@@ -107,22 +108,22 @@ func (r *GormRepository) UpsertProblemDraft(
 		return nil, errors.WrapIf(err, "failed to upsert problem draft in transaction")
 	}
 
-	response := ResponseProblemDraft{
+	response := dto.ProblemDraft{
 		ProblemDraftID: problemDraftModel.ProblemDraftID,
-		ProblemDifficulty: ResponseProblemDifficulty{
+		ProblemDifficulty: dto.ProblemDifficulty{
 			ProblemDifficultyID: problemDifficulty.ProblemDifficultyID,
-			DisplayNames:        make([]ResponseProblemDifficultyDisplayName, len(problemDifficulty.DisplayNames)),
+			DisplayNames:        make([]dto.ProblemDifficultyDisplayName, len(problemDifficulty.DisplayNames)),
 		},
 		CreatorID:          creatorID,
-		Details:            make([]ResponseProblemDraftDetail, len(problemDraftModel.Details)),
-		Examples:           make([]ResponseProblemDraftExample, len(problemDraftModel.Examples)),
+		Details:            make([]dto.ProblemDraftDetail, len(problemDraftModel.Details)),
+		Examples:           make([]dto.ProblemDraftExample, len(problemDraftModel.Examples)),
 		SubmittedProblemID: uuid.NullUUID{Valid: false}, // TODO: link to Problems
 		CreatedAt:          problemDraftModel.CreatedAt,
 		UpdatedAt:          problemDraftModel.UpdatedAt,
 	}
 
 	for i, detail := range problemDraftModel.Details {
-		response.Details[i] = ResponseProblemDraftDetail{
+		response.Details[i] = dto.ProblemDraftDetail{
 			Language:     detail.Language,
 			Title:        detail.Title,
 			Background:   detail.Background,
@@ -134,14 +135,14 @@ func (r *GormRepository) UpsertProblemDraft(
 	}
 
 	for i, example := range problemDraftModel.Examples {
-		response.Examples[i] = ResponseProblemDraftExample{
+		response.Examples[i] = dto.ProblemDraftExample{
 			Input:  example.Input,
 			Output: example.Output,
 		}
 	}
 
 	for i, displayName := range problemDifficulty.DisplayNames {
-		response.ProblemDifficulty.DisplayNames[i] = ResponseProblemDifficultyDisplayName{
+		response.ProblemDifficulty.DisplayNames[i] = dto.ProblemDifficultyDisplayName{
 			Language: displayName.Language,
 			Name:     displayName.DisplayName,
 		}
