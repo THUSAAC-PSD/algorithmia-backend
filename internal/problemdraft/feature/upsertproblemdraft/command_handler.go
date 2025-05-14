@@ -6,7 +6,6 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -16,9 +15,12 @@ import (
 var (
 	ErrInvalidProblemDraftID      = errors.New("invalid problem draft ID")
 	ErrInvalidProblemDifficultyID = errors.New("invalid problem difficulty ID")
+	ErrNotCreatorOrInactive       = errors.New("not the creator of the problem draft or inactive draft")
 )
 
 type Repository interface {
+	VerifyActiveProblemDraftCreator(ctx context.Context, problemDraftID uuid.UUID, creatorID uuid.UUID) (bool, error)
+
 	UpsertProblemDraft(
 		ctx context.Context,
 		command *Command,
@@ -27,7 +29,7 @@ type Repository interface {
 		creatorID uuid.UUID,
 		exampleIDs []uuid.UUID,
 		detailIDs []uuid.UUID,
-	) (*dto.ProblemDraft, error)
+	) error
 }
 
 type CommandHandler struct {
@@ -75,6 +77,10 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 		}
 
 		command.ProblemDraftID = uuid.NullUUID{UUID: id, Valid: true}
+	} else if ok, err := h.repo.VerifyActiveProblemDraftCreator(ctx, command.ProblemDraftID.UUID, user.UserID); err != nil {
+		return nil, errors.WrapIf(err, "failed to verify active problem draft creator")
+	} else if !ok {
+		return nil, errors.WithStack(ErrNotCreatorOrInactive)
 	}
 
 	exampleIDs := make([]uuid.UUID, len(command.Examples))
@@ -97,12 +103,11 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 		detailIDs[i] = id
 	}
 
-	res, err := h.repo.UpsertProblemDraft(ctx, command, createdAt, updatedAt, user.UserID, exampleIDs, detailIDs)
-	if err != nil {
+	if err := h.repo.UpsertProblemDraft(ctx, command, createdAt, updatedAt, user.UserID, exampleIDs, detailIDs); err != nil {
 		return nil, errors.WrapIf(err, "failed to upsert problem draft in repository")
 	}
 
 	return &Response{
-		ProblemDraft: *res,
+		ProblemDraftID: command.ProblemDraftID.UUID,
 	}, nil
 }

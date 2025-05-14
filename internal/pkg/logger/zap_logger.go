@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"moul.io/zapgorm2"
 )
 
 type zapLogger struct {
@@ -40,6 +41,9 @@ func NewZapLogger(
 ) Logger {
 	zapLogger := &zapLogger{level: cfg.LogLevel, logOptions: cfg}
 	zapLogger.initLogger(env)
+
+	gl := zapgorm2.New(zapLogger.logger)
+	gl.SetAsDefault()
 
 	return zapLogger
 }

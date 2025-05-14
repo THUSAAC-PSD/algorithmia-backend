@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -31,21 +30,21 @@ func (r *GormRepository) UpsertProblemDraft(
 	creatorID uuid.UUID,
 	exampleIDs []uuid.UUID,
 	detailIDs []uuid.UUID,
-) (*dto.ProblemDraft, error) {
+) error {
 	db := database.GetDBFromContext(ctx, r.db)
 
 	if !command.ProblemDraftID.Valid {
-		return nil, errors.WithStack(ErrInvalidProblemDraftID)
+		return errors.WithStack(ErrInvalidProblemDraftID)
 	}
 
 	problemDraftModel := database.ProblemDraft{
 		ProblemDraftID:      command.ProblemDraftID.UUID,
 		ProblemDifficultyID: command.ProblemDifficultyID,
 		CreatorID:           creatorID,
-		IsActive:            true,
 		Examples:            make([]database.ProblemDraftExample, len(command.Examples)),
 		Details:             make([]database.ProblemDraftDetail, len(command.Details)),
 		UpdatedAt:           updatedAt,
+		IsActive:            true,
 	}
 
 	if createdAt != nil {
@@ -76,19 +75,22 @@ func (r *GormRepository) UpsertProblemDraft(
 	}
 
 	var problemDifficulty database.ProblemDifficulty
-	if err := db.WithContext(ctx).
-		Model(&database.ProblemDifficulty{}).
-		Preload("DisplayNames").
-		Where("problem_difficulty_id = ?", command.ProblemDifficultyID).
-		First(&problemDifficulty).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.WithStack(ErrInvalidProblemDifficultyID)
-		}
-
-		return nil, errors.WrapIf(err, "failed to get problem difficulty")
-	}
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
+		if command.ProblemDifficultyID.Valid {
+			if err := db.WithContext(ctx).
+				Model(&database.ProblemDifficulty{}).
+				Preload("DisplayNames").
+				Where("problem_difficulty_id = ?", command.ProblemDifficultyID.UUID).
+				First(&problemDifficulty).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return errors.WithStack(ErrInvalidProblemDifficultyID)
+				}
+
+				return errors.WrapIf(err, "failed to get problem difficulty")
+			}
+		}
+
 		if err := tx.WithContext(ctx).Where("problem_draft_id = ?", command.ProblemDraftID.UUID).Delete(&database.ProblemDraftExample{}).Error; err != nil {
 			return errors.WrapIf(err, "failed to delete old problem draft examples")
 		}
@@ -98,55 +100,34 @@ func (r *GormRepository) UpsertProblemDraft(
 		}
 
 		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{
-			UpdateAll: true,
+			Columns:   []clause.Column{{Name: "problem_draft_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"problem_difficulty_id", "updated_at"}),
 		}).Create(&problemDraftModel).Error; err != nil {
 			return errors.WrapIf(err, "failed to upsert problem draft")
 		}
 
 		return nil
 	}); err != nil {
-		return nil, errors.WrapIf(err, "failed to upsert problem draft in transaction")
+		return errors.WrapIf(err, "failed to upsert problem draft in transaction")
 	}
 
-	response := dto.ProblemDraft{
-		ProblemDraftID: problemDraftModel.ProblemDraftID,
-		ProblemDifficulty: dto.ProblemDifficulty{
-			ProblemDifficultyID: problemDifficulty.ProblemDifficultyID,
-			DisplayNames:        make([]dto.ProblemDifficultyDisplayName, len(problemDifficulty.DisplayNames)),
-		},
-		CreatorID:          creatorID,
-		Details:            make([]dto.ProblemDraftDetail, len(problemDraftModel.Details)),
-		Examples:           make([]dto.ProblemDraftExample, len(problemDraftModel.Examples)),
-		SubmittedProblemID: uuid.NullUUID{Valid: false}, // TODO: link to Problems
-		CreatedAt:          problemDraftModel.CreatedAt,
-		UpdatedAt:          problemDraftModel.UpdatedAt,
+	return nil
+}
+
+func (r *GormRepository) VerifyActiveProblemDraftCreator(
+	ctx context.Context,
+	problemDraftID uuid.UUID,
+	creatorID uuid.UUID,
+) (bool, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
+	var count int64
+	if err := db.WithContext(ctx).
+		Model(&database.ProblemDraft{}).
+		Where("problem_draft_id = ? AND creator_id = ? AND is_active = ?", problemDraftID, creatorID, true).
+		Count(&count).Error; err != nil {
+		return false, errors.WrapIf(err, "failed to count problem drafts")
 	}
 
-	for i, detail := range problemDraftModel.Details {
-		response.Details[i] = dto.ProblemDraftDetail{
-			Language:     detail.Language,
-			Title:        detail.Title,
-			Background:   detail.Background,
-			Statement:    detail.Statement,
-			InputFormat:  detail.InputFormat,
-			OutputFormat: detail.OutputFormat,
-			Note:         detail.Note,
-		}
-	}
-
-	for i, example := range problemDraftModel.Examples {
-		response.Examples[i] = dto.ProblemDraftExample{
-			Input:  example.Input,
-			Output: example.Output,
-		}
-	}
-
-	for i, displayName := range problemDifficulty.DisplayNames {
-		response.ProblemDifficulty.DisplayNames[i] = dto.ProblemDifficultyDisplayName{
-			Language: displayName.Language,
-			Name:     displayName.DisplayName,
-		}
-	}
-
-	return &response, nil
+	return count > 0, nil
 }

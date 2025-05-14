@@ -1,4 +1,4 @@
-package upsertproblemdraft
+package submitproblemdraft
 
 import (
 	"net/http"
@@ -22,7 +22,7 @@ func NewEndpoint(params *shared.ProblemDraftEndpointParams) *Endpoint {
 }
 
 func (e *Endpoint) MapEndpoint() {
-	e.ProblemDraftsGroup.PUT("", e.handle())
+	e.ProblemDraftsGroup.POST("/:problem_draft_id/submit", e.handle())
 }
 
 func (e *Endpoint) handle() echo.HandlerFunc {
@@ -41,17 +41,23 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			command,
 		)
 
-		if errors.Is(err, ErrInvalidProblemDraftID) {
-			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to update does not exist").
+		if errors.Is(err, ErrProblemDraftNotFound) {
+			return httperror.New(http.StatusNotFound, "The problem draft you're trying to submit does not exist").
 				WithInternal(err)
-		} else if errors.Is(err, ErrInvalidProblemDifficultyID) {
-			return httperror.New(http.StatusUnprocessableEntity, "The problem difficulty ID you provided doesn't correspond to any valid problem difficulties").WithInternal(err)
-		} else if errors.Is(err, ErrNotCreatorOrInactive) {
-			return httperror.New(http.StatusForbidden, "You are not the creator of this problem draft or the draft is inactive").WithInternal(err)
+		} else if errors.Is(err, ErrProblemDraftNotActive) {
+			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit is not active")
+		} else if errors.Is(err, ErrProblemDoesntNeedRevision) {
+			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit does not need revision")
+		} else if errors.Is(err, ErrNotCreator) {
+			return httperror.New(http.StatusForbidden, "You are not the creator of this problem draft")
+		} else if errors.Is(err, ErrIncompleteDraft) {
+			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit is incomplete")
+		} else if errors.Is(err, ErrContestNotFound) {
+			return httperror.New(http.StatusUnprocessableEntity, "The contest you're trying to submit to does not exist")
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}
 
-		return ctx.JSON(http.StatusCreated, response)
+		return ctx.JSON(http.StatusOK, response)
 	}
 }

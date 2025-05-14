@@ -11,6 +11,8 @@ type User struct {
 	Username       string    `gorm:"unique"`
 	Email          string    `gorm:"unique"`
 	HashedPassword string
+	ProblemDrafts  []ProblemDraft `gorm:"foreignKey:CreatorID"`
+	Problems       []Problem      `gorm:"foreignKey:CreatorID"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

@@ -12,6 +12,8 @@ type Contest struct {
 	Description      string
 	MinProblemCount  uint
 	MaxProblemCount  uint
+	TargetedProblems []Problem `gorm:"foreignKey:TargetContestID"`
+	AssignedProblems []Problem `gorm:"foreignKey:AssignedContestID"`
 	DeadlineDatetime time.Time
 	CreatedAt        time.Time
 	DeletedAt        time.Time

@@ -74,4 +74,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.10.0 // indirect
 	modernc.org/sqlite v1.37.0 // indirect
+	moul.io/zapgorm2 v1.3.0 // indirect
 )

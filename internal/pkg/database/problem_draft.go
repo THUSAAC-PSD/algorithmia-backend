@@ -11,12 +11,11 @@ type ProblemDraft struct {
 	CreatorID           uuid.UUID     `gorm:"type:uuid"`
 	ProblemDifficultyID uuid.NullUUID `gorm:"type:uuid"`
 	ProblemDifficulty   ProblemDifficulty
+	SubmittedProblem    Problem               `gorm:"foreignKey:ProblemDraftID"`
 	Examples            []ProblemDraftExample `gorm:"foreignKey:ProblemDraftID"`
 	Details             []ProblemDraftDetail  `gorm:"foreignKey:ProblemDraftID"`
-	IsActive            bool                  // True until the problem draft is submitted, then false if it needs revision
+	IsActive            bool                  // False after the problem draft is submitted, then true again when it needs revision
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	DeletedAt           time.Time
-
-	// TODO: link to Problems
 }

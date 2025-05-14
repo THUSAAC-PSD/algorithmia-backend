@@ -1,9 +1,7 @@
 package upsertproblemdraft
 
-import (
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
-)
+import "github.com/google/uuid"
 
 type Response struct {
-	ProblemDraft dto.ProblemDraft `json:"problem_draft"`
+	ProblemDraftID uuid.UUID `json:"problem_draft_id"`
 }

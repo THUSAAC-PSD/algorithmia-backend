@@ -10,6 +10,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	problemDifficultyShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/submitproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
 	problemDraftShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
@@ -124,6 +125,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 		upsertProblemDraftEndpoint := upsertproblemdraft.NewEndpoint(pdrep)
 		listProblemDraftEndpoint := listproblemdraft.NewEndpoint(pdrep)
+		submitProblemDraftEndpoint := submitproblemdraft.NewEndpoint(pdrep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -140,6 +142,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 			upsertProblemDraftEndpoint,
 			listProblemDraftEndpoint,
+			submitProblemDraftEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -193,6 +196,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(listproblemdraft.NewGormRepository,
 		dig.As(new(listproblemdraft.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide list problem draft repository")
+	}
+
+	if err := b.Container.Provide(submitproblemdraft.NewGormRepository,
+		dig.As(new(submitproblemdraft.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide submit problem draft repository")
 	}
 
 	return nil

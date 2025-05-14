@@ -8,6 +8,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/submitproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
@@ -31,6 +32,7 @@ func (a *Application) ConfigMediator() error {
 		listProblemDifficultyRepo listproblemdifficulty.Repository,
 		upsertProblemDraftRepo upsertproblemdraft.Repository,
 		listProblemDraftRepo listproblemdraft.Repository,
+		submitProblemDraftRepo submitproblemdraft.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -110,6 +112,17 @@ func (a *Application) ConfigMediator() error {
 		listProblemDraftHandler := listproblemdraft.NewQueryHandler(listProblemDraftRepo, authProvider)
 		if err := mediatr.RegisterRequestHandler[*listproblemdraft.Query, *listproblemdraft.Response](listProblemDraftHandler); err != nil {
 			return errors.WrapIf(err, "failed to register list problem draft query handler")
+		}
+
+		submitProblemDraftHandler := submitproblemdraft.NewCommandHandler(
+			submitProblemDraftRepo,
+			validator.New(),
+			authProvider,
+			uowFactory,
+			l,
+		)
+		if err := mediatr.RegisterRequestHandler[*submitproblemdraft.Command, *submitproblemdraft.Response](submitProblemDraftHandler); err != nil {
+			return errors.WrapIf(err, "failed to register submit problem draft query handler")
 		}
 
 		return nil
