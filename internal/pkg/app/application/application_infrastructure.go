@@ -67,6 +67,7 @@ func (a *Application) migrateDatabase() error {
 			&database.ProblemVersionDetail{},
 			&database.ProblemVersionExample{},
 			&database.ProblemReview{},
+			&database.ProblemTestResult{},
 		)
 		if err != nil {
 			return err

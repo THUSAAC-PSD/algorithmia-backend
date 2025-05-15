@@ -7,6 +7,7 @@ const (
 	ProblemStatusPendingReview      ProblemStatus = "pending_review"
 	ProblemStatusNeedsRevision      ProblemStatus = "needs_revision"
 	ProblemStatusApprovedForTesting ProblemStatus = "approved_for_testing"
+	ProblemStatusAwaitingFinalCheck ProblemStatus = "awaiting_final_check"
 )
 
 func FromStringToProblemStatus(status string) ProblemStatus {
@@ -19,6 +20,8 @@ func FromStringToProblemStatus(status string) ProblemStatus {
 		return ProblemStatusNeedsRevision
 	case string(ProblemStatusApprovedForTesting):
 		return ProblemStatusApprovedForTesting
+	case string(ProblemStatusAwaitingFinalCheck):
+		return ProblemStatusAwaitingFinalCheck
 	default:
 		return ""
 	}

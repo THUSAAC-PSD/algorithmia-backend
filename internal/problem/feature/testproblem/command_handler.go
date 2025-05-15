@@ -1,4 +1,4 @@
-package reviewproblem
+package testproblem
 
 import (
 	"context"
@@ -16,19 +16,14 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrProblemNotPendingReview = errors.New("problem not pending review")
-
-type Problem struct {
-	Status  constant.ProblemStatus
-	DraftID uuid.UUID
-}
+var ErrProblemNotApprovedForTesting = errors.New("problem not approved for testing")
 
 type Repository interface {
 	GetLatestProblemVersionID(ctx context.Context, problemID uuid.UUID) (uuid.UUID, error)
-	CreateReview(
+	CreateTestResult(
 		ctx context.Context,
 		command *Command,
-		reviewerID uuid.UUID,
+		testerID uuid.UUID,
 		versionID uuid.UUID,
 		createdAt time.Time,
 	) (uuid.UUID, error)
@@ -84,8 +79,8 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to get problem")
 		}
 
-		if problem.Status != constant.ProblemStatusPendingReview {
-			return nil, errors.WithStack(ErrProblemNotPendingReview)
+		if problem.Status != constant.ProblemStatusApprovedForTesting {
+			return nil, errors.WithStack(ErrProblemNotApprovedForTesting)
 		}
 
 		versionID, err := h.repo.GetLatestProblemVersionID(ctx, command.ProblemID)
@@ -93,33 +88,28 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to get latest problem version ID")
 		}
 
-		reviewID, err := h.repo.CreateReview(ctx, command, user.UserID, versionID, time.Now())
+		resultID, err := h.repo.CreateTestResult(ctx, command, user.UserID, versionID, time.Now())
 		if err != nil {
-			return nil, errors.WrapIf(err, "failed to create review")
+			return nil, errors.WrapIf(err, "failed to create test result")
 		}
 
 		var problemStatus constant.ProblemStatus
-		switch command.Decision {
-		case DecisionApprove:
-			problemStatus = constant.ProblemStatusApprovedForTesting
-		case DecisionReject:
-			problemStatus = constant.ProblemStatusRejected
-		case DecisionNeedsRevision:
+		switch command.Status {
+		case StatusPassed:
+			problemStatus = constant.ProblemStatusAwaitingFinalCheck
+		case StatusFailed:
 			problemStatus = constant.ProblemStatusNeedsRevision
+			if err := h.repo.SetProblemDraftActive(ctx, problem.DraftID); err != nil {
+				return nil, errors.WrapIf(err, "failed to set problem draft active")
+			}
 		}
 
 		if err := h.repo.UpdateProblemStatus(ctx, command.ProblemID, problemStatus); err != nil {
 			return nil, errors.WrapIf(err, "failed to update problem status")
 		}
 
-		if command.Decision == DecisionNeedsRevision {
-			if err := h.repo.SetProblemDraftActive(ctx, problem.DraftID); err != nil {
-				return nil, errors.WrapIf(err, "failed to set problem draft active")
-			}
-		}
-
 		return &Response{
-			ReviewID:         reviewID,
+			TestResultID:     resultID,
 			ProblemVersionID: versionID,
 		}, nil
 	})

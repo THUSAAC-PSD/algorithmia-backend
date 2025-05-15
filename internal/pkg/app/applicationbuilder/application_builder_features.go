@@ -8,7 +8,9 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
 	problemShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
+	problemInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared/infrastructure"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	problemDifficultyShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
@@ -21,7 +23,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
 	userShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/infrastructure"
+	userInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/infrastructure"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -38,7 +40,7 @@ func (b *ApplicationBuilder) AddFeatures() error {
 		return err
 	}
 
-	if err := b.Container.Provide(infrastructure.NewArgonPasswordHasher,
+	if err := b.Container.Provide(userInfra.NewArgonPasswordHasher,
 		dig.As(new(register.PasswordHasher)),
 		dig.As(new(login.PasswordChecker))); err != nil {
 		return errors.WrapIf(err, "failed to provide argon password hasher")
@@ -49,7 +51,7 @@ func (b *ApplicationBuilder) AddFeatures() error {
 		return errors.WrapIf(err, "failed to provide gomail email sender")
 	}
 
-	if err := b.Container.Provide(infrastructure.NewHTTPSessionManager,
+	if err := b.Container.Provide(userInfra.NewHTTPSessionManager,
 		dig.As(new(login.SessionManager)),
 		dig.As(new(logout.SessionManager))); err != nil {
 		return errors.WrapIf(err, "failed to provide http session manager")
@@ -149,6 +151,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		submitProblemDraftEndpoint := submitproblemdraft.NewEndpoint(pdrep)
 
 		reviewProblemEndpoint := reviewproblem.NewEndpoint(pep)
+		testProblemEndpoint := testproblem.NewEndpoint(pep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -168,6 +171,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			submitProblemDraftEndpoint,
 
 			reviewProblemEndpoint,
+			testProblemEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -228,9 +232,10 @@ func (b *ApplicationBuilder) addRepositories() error {
 		return errors.WrapIf(err, "failed to provide submit problem draft repository")
 	}
 
-	if err := b.Container.Provide(reviewproblem.NewGormRepository,
-		dig.As(new(reviewproblem.Repository))); err != nil {
-		return errors.WrapIf(err, "failed to provide review problem repository")
+	if err := b.Container.Provide(problemInfra.NewProblemActionGormRepository,
+		dig.As(new(reviewproblem.Repository)),
+		dig.As(new(testproblem.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide shared problem action repository")
 	}
 
 	return nil
