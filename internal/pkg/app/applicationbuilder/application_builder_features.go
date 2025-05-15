@@ -7,6 +7,8 @@ import (
 	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
+	problemShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	problemDifficultyShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
@@ -110,7 +112,26 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide problem draft endpoint params")
 	}
 
-	if err := b.Container.Provide(func(uep *userShared.UserEndpointParams, cep *contestShared.ContestEndpointParams, pdep *problemDifficultyShared.ProblemDifficultyEndpointParams, pdrep *problemDraftShared.ProblemDraftEndpointParams) ([]contract.Endpoint, error) {
+	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*problemShared.ProblemEndpointParams, error) {
+		problems := v1Group.Group.Group("/problems")
+
+		ep := &problemShared.ProblemEndpointParams{
+			ProblemsGroup: problems,
+			Validator:     validator.New(),
+		}
+
+		return ep, nil
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide problem endpoint params")
+	}
+
+	if err := b.Container.Provide(func(
+		uep *userShared.UserEndpointParams,
+		cep *contestShared.ContestEndpointParams,
+		pdep *problemDifficultyShared.ProblemDifficultyEndpointParams,
+		pdrep *problemDraftShared.ProblemDraftEndpointParams,
+		pep *problemShared.ProblemEndpointParams,
+	) ([]contract.Endpoint, error) {
 		registerEndpoint := register.NewEndpoint(uep)
 		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(uep)
 		loginEndpoint := login.NewEndpoint(uep)
@@ -126,6 +147,8 @@ func (b *ApplicationBuilder) addRoutes() error {
 		upsertProblemDraftEndpoint := upsertproblemdraft.NewEndpoint(pdrep)
 		listProblemDraftEndpoint := listproblemdraft.NewEndpoint(pdrep)
 		submitProblemDraftEndpoint := submitproblemdraft.NewEndpoint(pdrep)
+
+		reviewProblemEndpoint := reviewproblem.NewEndpoint(pep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -143,6 +166,8 @@ func (b *ApplicationBuilder) addRoutes() error {
 			upsertProblemDraftEndpoint,
 			listProblemDraftEndpoint,
 			submitProblemDraftEndpoint,
+
+			reviewProblemEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -201,6 +226,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(submitproblemdraft.NewGormRepository,
 		dig.As(new(submitproblemdraft.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide submit problem draft repository")
+	}
+
+	if err := b.Container.Provide(reviewproblem.NewGormRepository,
+		dig.As(new(reviewproblem.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide review problem repository")
 	}
 
 	return nil

@@ -22,7 +22,7 @@ var (
 	ErrProblemDraftNotActive     = errors.New("problem draft is not active")
 	ErrProblemDoesntNeedRevision = errors.New("problem does not need revision")
 	ErrNotCreator                = errors.New("not the creator of the problem draft")
-	ErrIncompleteDraft           = errors.New("problem draft is incomplete")
+	ErrMissingProblemDifficulty  = errors.New("problem draft missing difficulty")
 )
 
 type Repository interface {
@@ -94,7 +94,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 	}
 
 	if problemDraft.ProblemDifficulty.ProblemDifficultyID == uuid.Nil {
-		return nil, errors.WithStack(ErrIncompleteDraft)
+		return nil, errors.WithStack(ErrMissingProblemDifficulty)
 	}
 
 	if problemDraft.SubmittedProblemID.Valid {

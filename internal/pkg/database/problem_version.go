@@ -13,5 +13,6 @@ type ProblemVersion struct {
 	ProblemDifficulty   ProblemDifficulty
 	Details             []ProblemVersionDetail  `gorm:"foreignKey:ProblemVersionID"`
 	Examples            []ProblemVersionExample `gorm:"foreignKey:ProblemVersionID"`
+	Review              ProblemReview           `gorm:"foreignKey:VersionID"`
 	CreatedAt           time.Time
 }

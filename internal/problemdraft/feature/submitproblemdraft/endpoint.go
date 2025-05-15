@@ -50,8 +50,9 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit does not need revision")
 		} else if errors.Is(err, ErrNotCreator) {
 			return httperror.New(http.StatusForbidden, "You are not the creator of this problem draft")
-		} else if errors.Is(err, ErrIncompleteDraft) {
-			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit is incomplete")
+		} else if errors.Is(err, ErrMissingProblemDifficulty) {
+			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit is missing its problem difficulty").
+				WithType(httperror.ErrTypeIncompleteProblemDraft)
 		} else if errors.Is(err, ErrContestNotFound) {
 			return httperror.New(http.StatusUnprocessableEntity, "The contest you're trying to submit to does not exist")
 		} else if err != nil {
