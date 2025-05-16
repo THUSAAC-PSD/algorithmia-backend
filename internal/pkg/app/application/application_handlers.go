@@ -7,6 +7,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
@@ -41,6 +42,7 @@ func (a *Application) ConfigMediator() error {
 		testProblemRepo testproblem.Repository,
 		assignTesterRepo assigntester.Repository,
 		markCompleteRepo markcomplete.Repository,
+		listProblemRepo listproblem.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -175,6 +177,14 @@ func (a *Application) ConfigMediator() error {
 		)
 		if err := mediatr.RegisterRequestHandler[*markcomplete.Command, mediatr.Unit](markCompleteHandler); err != nil {
 			return errors.WrapIf(err, "failed to register mark complete command handler")
+		}
+
+		listProblemHandler := listproblem.NewQueryHandler(
+			listProblemRepo,
+			authProvider,
+		)
+		if err := mediatr.RegisterRequestHandler[*listproblem.Query, *listproblem.Response](listProblemHandler); err != nil {
+			return errors.WrapIf(err, "failed to register list problem query handler")
 		}
 
 		return nil

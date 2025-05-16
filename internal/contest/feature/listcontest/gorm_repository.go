@@ -3,6 +3,8 @@ package listcontest
 import (
 	"context"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
+
 	"emperror.dev/errors"
 	"gorm.io/gorm"
 )
@@ -18,8 +20,10 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 }
 
 func (g *GormRepository) GetAllContests(ctx context.Context) ([]Contest, error) {
+	db := database.GetDBFromContext(ctx, g.db)
+
 	var contests []Contest
-	if err := g.db.WithContext(ctx).Find(&contests).Error; err != nil {
+	if err := db.WithContext(ctx).Find(&contests).Error; err != nil {
 		return nil, errors.Wrap(err, "failed to get all contests")
 	}
 

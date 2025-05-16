@@ -8,6 +8,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
@@ -156,6 +157,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		testProblemEndpoint := testproblem.NewEndpoint(pep)
 		assignTesterEndpoint := assigntester.NewEndpoint(pep)
 		markCompleteEndpoint := markcomplete.NewEndpoint(pep)
+		listProblemEndpoint := listproblem.NewEndpoint(pep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -178,6 +180,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			testProblemEndpoint,
 			assignTesterEndpoint,
 			markCompleteEndpoint,
+			listProblemEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -253,6 +256,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(markcomplete.NewGormRepository,
 		dig.As(new(markcomplete.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide assign tester repository")
+	}
+
+	if err := b.Container.Provide(listproblem.NewGormRepository,
+		dig.As(new(listproblem.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem repository")
 	}
 
 	return nil

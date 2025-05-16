@@ -25,8 +25,10 @@ func (g *GormRepository) GetActiveProblemDraftsByCreator(
 	ctx context.Context,
 	userID uuid.UUID,
 ) ([]dto.ProblemDraft, error) {
+	db := database.GetDBFromContext(ctx, g.db)
+
 	var problemDrafts []database.ProblemDraft
-	if err := g.db.WithContext(ctx).
+	if err := db.WithContext(ctx).
 		Model(&database.ProblemDraft{}).
 		Preload("ProblemDifficulty").
 		Preload("ProblemDifficulty.DisplayNames").
