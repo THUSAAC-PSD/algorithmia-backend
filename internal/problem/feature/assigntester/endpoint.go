@@ -42,8 +42,7 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 		)
 
 		if errors.Is(err, shared.ErrProblemNotFound) {
-			return httperror.New(http.StatusNotFound, "The problem you're trying to submit test results to does not exist").
-				WithInternal(err)
+			return httperror.New(http.StatusNotFound, "The problem does not exist")
 		} else if errors.Is(err, ErrTargetUserNotFound) {
 			return httperror.New(http.StatusUnprocessableEntity, "The tester you're trying to assign does not exist")
 		} else if errors.Is(err, ErrForbiddenToAssignTester) {

@@ -16,6 +16,27 @@ import (
 	"gorm.io/gorm"
 )
 
+type ProblemActionRepository interface {
+	GetLatestProblemVersionID(ctx context.Context, problemID uuid.UUID) (uuid.UUID, error)
+	CreateTestResult(
+		ctx context.Context,
+		command *testproblem.Command,
+		testerID uuid.UUID,
+		versionID uuid.UUID,
+		createdAt time.Time,
+	) (uuid.UUID, error)
+	CreateReview(
+		ctx context.Context,
+		command *reviewproblem.Command,
+		reviewerID uuid.UUID,
+		versionID uuid.UUID,
+		createdAt time.Time,
+	) (uuid.UUID, error)
+	GetProblem(ctx context.Context, problemID uuid.UUID) (dto.ProblemStatusAndVersion, error)
+	UpdateProblemStatus(ctx context.Context, problemID uuid.UUID, status constant.ProblemStatus) error
+	SetProblemDraftActive(ctx context.Context, problemDraftID uuid.UUID) error
+}
+
 type ProblemActionGormRepository struct {
 	db *gorm.DB
 }

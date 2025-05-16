@@ -1,4 +1,4 @@
-package reviewproblem
+package markcomplete
 
 import (
 	"net/http"
@@ -22,7 +22,7 @@ func NewEndpoint(params *shared.ProblemEndpointParams) *Endpoint {
 }
 
 func (e *Endpoint) MapEndpoint() {
-	e.ProblemsGroup.POST("/:problem_id/reviews", e.handle())
+	e.ProblemsGroup.POST("/:problem_id/complete", e.handle())
 }
 
 func (e *Endpoint) handle() echo.HandlerFunc {
@@ -36,19 +36,19 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusBadRequest, err.Error()).WithInternal(err)
 		}
 
-		response, err := mediatr.Send[*Command, *Response](
+		_, err := mediatr.Send[*Command, mediatr.Unit](
 			ctx.Request().Context(),
 			command,
 		)
 
 		if errors.Is(err, shared.ErrProblemNotFound) {
 			return httperror.New(http.StatusNotFound, "The problem does not exist")
-		} else if errors.Is(err, ErrProblemNotPendingReview) {
-			return httperror.New(http.StatusUnprocessableEntity, "The problem you're trying to review is not in a pending review state")
+		} else if errors.Is(err, ErrProblemNotAwaitingFinalCheck) {
+			return httperror.New(http.StatusUnprocessableEntity, "The problem is not in a state to be completed; it needs to have passed the test phase first")
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}
 
-		return ctx.JSON(http.StatusCreated, response)
+		return ctx.NoContent(http.StatusNoContent)
 	}
 }
