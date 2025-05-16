@@ -7,6 +7,7 @@ import (
 	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
 	problemShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
@@ -152,6 +153,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 		reviewProblemEndpoint := reviewproblem.NewEndpoint(pep)
 		testProblemEndpoint := testproblem.NewEndpoint(pep)
+		assignTesterEndpoint := assigntester.NewEndpoint(pep)
 
 		endpoints := []contract.Endpoint{
 			registerEndpoint,
@@ -172,6 +174,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 			reviewProblemEndpoint,
 			testProblemEndpoint,
+			assignTesterEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -236,6 +239,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 		dig.As(new(reviewproblem.Repository)),
 		dig.As(new(testproblem.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide shared problem action repository")
+	}
+
+	if err := b.Container.Provide(assigntester.NewGormRepository,
+		dig.As(new(assigntester.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide assign tester repository")
 	}
 
 	return nil

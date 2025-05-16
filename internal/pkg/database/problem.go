@@ -13,6 +13,7 @@ type Problem struct {
 	ProblemDraftID    uuid.UUID        `gorm:"type:uuid;unique"`
 	TargetContestID   uuid.NullUUID    `gorm:"type:uuid"`
 	AssignedContestID uuid.NullUUID    `gorm:"type:uuid"`
+	TesterID          uuid.NullUUID    `gorm:"type:uuid"`
 	ProblemVersions   []ProblemVersion `gorm:"foreignKey:ProblemID"`
 	CreatedAt         time.Time
 	UpdatedAt         time.Time

@@ -6,6 +6,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
@@ -37,6 +38,7 @@ func (a *Application) ConfigMediator() error {
 		submitProblemDraftRepo submitproblemdraft.Repository,
 		reviewProblemRepo reviewproblem.Repository,
 		testProblemRepo testproblem.Repository,
+		assignTesterRepo assigntester.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -149,6 +151,17 @@ func (a *Application) ConfigMediator() error {
 		)
 		if err := mediatr.RegisterRequestHandler[*testproblem.Command, *testproblem.Response](testProblemHandler); err != nil {
 			return errors.WrapIf(err, "failed to register test problem command handler")
+		}
+
+		assignTesterHandler := assigntester.NewCommandHandler(
+			assignTesterRepo,
+			validator.New(),
+			authProvider,
+			uowFactory,
+			l,
+		)
+		if err := mediatr.RegisterRequestHandler[*assigntester.Command, mediatr.Unit](assignTesterHandler); err != nil {
+			return errors.WrapIf(err, "failed to register assign tester command handler")
 		}
 
 		return nil
