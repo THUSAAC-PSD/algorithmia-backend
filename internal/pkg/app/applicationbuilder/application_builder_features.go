@@ -7,10 +7,13 @@ import (
 	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/sendmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
 	problemShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
 	problemInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared/infrastructure"
@@ -130,13 +133,32 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide problem endpoint params")
 	}
 
+	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group, hub *websocket.Hub, authProvider contract.AuthProvider, l logger.Logger) (*websocket.EndpointParams, error) {
+		ws := v1Group.Group.Group("/ws")
+
+		ep := &websocket.EndpointParams{
+			WebsocketGroup: ws,
+			Hub:            hub,
+			AuthProvider:   authProvider,
+			Logger:         l,
+		}
+
+		return ep, nil
+	}); err != nil {
+		return errors.WrapIf(err, "failed to provide websocket endpoint params")
+	}
+
 	if err := b.Container.Provide(func(
+		wsep *websocket.EndpointParams,
 		uep *userShared.UserEndpointParams,
 		cep *contestShared.ContestEndpointParams,
 		pdep *problemDifficultyShared.ProblemDifficultyEndpointParams,
 		pdrep *problemDraftShared.ProblemDraftEndpointParams,
 		pep *problemShared.ProblemEndpointParams,
+		r *websocket.Router,
 	) ([]contract.Endpoint, error) {
+		wsEndpoint := websocket.NewEndpoint(wsep)
+
 		registerEndpoint := register.NewEndpoint(uep)
 		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(uep)
 		loginEndpoint := login.NewEndpoint(uep)
@@ -159,7 +181,11 @@ func (b *ApplicationBuilder) addRoutes() error {
 		markCompleteEndpoint := markcomplete.NewEndpoint(pep)
 		listProblemEndpoint := listproblem.NewEndpoint(pep)
 
+		sendMessageEndpoint := sendmessage.NewEndpoint(r, validator.New())
+
 		endpoints := []contract.Endpoint{
+			wsEndpoint,
+
 			registerEndpoint,
 			requestEmailVerificationEndpoint,
 			loginEndpoint,
@@ -181,6 +207,8 @@ func (b *ApplicationBuilder) addRoutes() error {
 			assignTesterEndpoint,
 			markCompleteEndpoint,
 			listProblemEndpoint,
+
+			sendMessageEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -261,6 +289,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(listproblem.NewGormRepository,
 		dig.As(new(listproblem.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide list problem repository")
+	}
+
+	if err := b.Container.Provide(sendmessage.NewGormRepository,
+		dig.As(new(sendmessage.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide send message repository")
 	}
 
 	return nil

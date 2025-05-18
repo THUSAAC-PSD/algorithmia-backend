@@ -10,6 +10,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/sendmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
@@ -43,6 +44,7 @@ func (a *Application) ConfigMediator() error {
 		assignTesterRepo assigntester.Repository,
 		markCompleteRepo markcomplete.Repository,
 		listProblemRepo listproblem.Repository,
+		sendMessageRepo sendmessage.Repository,
 		emailSender requestemailverification.EmailSender,
 		passwordHasher register.PasswordHasher,
 		passwordChecker login.PasswordChecker,
@@ -51,6 +53,7 @@ func (a *Application) ConfigMediator() error {
 		uowFactory contract.UnitOfWorkFactory,
 		l logger.Logger,
 		authProvider contract.AuthProvider,
+		messageBroadcaster contract.MessageBroadcaster,
 	) error {
 		registerHandler := register.NewCommandHandler(registerRepo, passwordHasher, validator.New(), uowFactory, l)
 		if err := mediatr.RegisterRequestHandler[*register.Command, *register.Response](registerHandler); err != nil {
@@ -185,6 +188,18 @@ func (a *Application) ConfigMediator() error {
 		)
 		if err := mediatr.RegisterRequestHandler[*listproblem.Query, *listproblem.Response](listProblemHandler); err != nil {
 			return errors.WrapIf(err, "failed to register list problem query handler")
+		}
+
+		sendMessageHandler := sendmessage.NewCommandHandler(
+			sendMessageRepo,
+			validator.New(),
+			authProvider,
+			uowFactory,
+			messageBroadcaster,
+			l,
+		)
+		if err := mediatr.RegisterRequestHandler[*sendmessage.Command, mediatr.Unit](sendMessageHandler); err != nil {
+			return errors.WrapIf(err, "failed to register send message command handler")
 		}
 
 		return nil

@@ -50,6 +50,7 @@ func AddEcho(container *dig.Container) error {
 			),
 		)
 		e.Use(middleware.BodyLimit(constant.BodyLimit))
+		e.Use(middleware.CORS()) // TODO: Add CORS config
 		e.Use(middleware.RequestID())
 		e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(30)))
 		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
