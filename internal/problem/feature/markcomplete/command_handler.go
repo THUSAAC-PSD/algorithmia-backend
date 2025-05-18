@@ -2,6 +2,7 @@ package markcomplete
 
 import (
 	"context"
+	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
@@ -27,6 +28,7 @@ type CommandHandler struct {
 	validator    *validator.Validate
 	authProvider contract.AuthProvider
 	uowFactory   contract.UnitOfWorkFactory
+	broadcaster  contract.MessageBroadcaster
 	l            logger.Logger
 }
 
@@ -35,6 +37,7 @@ func NewCommandHandler(
 	validator *validator.Validate,
 	authProvider contract.AuthProvider,
 	uowFactory contract.UnitOfWorkFactory,
+	broadcaster contract.MessageBroadcaster,
 	l logger.Logger,
 ) *CommandHandler {
 	return &CommandHandler{
@@ -42,6 +45,7 @@ func NewCommandHandler(
 		validator:    validator,
 		authProvider: authProvider,
 		uowFactory:   uowFactory,
+		broadcaster:  broadcaster,
 		l:            l,
 	}
 }
@@ -55,7 +59,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.
 		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
-	_, err := h.authProvider.MustGetUser(ctx)
+	user, err := h.authProvider.MustGetUser(ctx)
 	if err != nil {
 		return mediatr.Unit{}, errors.WrapIf(err, "failed to get user from auth provider")
 	}
@@ -70,8 +74,16 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.
 			return mediatr.Unit{}, errors.WithStack(ErrProblemNotAwaitingFinalCheck)
 		}
 
+		timestamp := time.Now()
 		if err := h.repo.MarkProblemCompleted(ctx, command.ProblemID); err != nil {
 			return mediatr.Unit{}, errors.WrapIf(err, "failed to mark problem as completed")
+		}
+
+		if err := h.broadcaster.BroadcastCompletedMessage(command.ProblemID, contract.MessageUser{
+			UserID:   user.UserID,
+			Username: user.Username,
+		}, timestamp); err != nil {
+			return mediatr.Unit{}, errors.WrapIf(err, "failed to broadcast completed message")
 		}
 
 		return mediatr.Unit{}, nil

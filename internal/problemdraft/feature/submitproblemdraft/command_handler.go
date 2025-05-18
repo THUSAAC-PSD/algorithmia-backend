@@ -49,6 +49,7 @@ type CommandHandler struct {
 	validator    *validator.Validate
 	authProvider contract.AuthProvider
 	uowFactory   contract.UnitOfWorkFactory
+	broadcaster  contract.MessageBroadcaster
 	l            logger.Logger
 }
 
@@ -57,6 +58,7 @@ func NewCommandHandler(
 	validator *validator.Validate,
 	authProvider contract.AuthProvider,
 	uowFactory contract.UnitOfWorkFactory,
+	broadcaster contract.MessageBroadcaster,
 	l logger.Logger,
 ) *CommandHandler {
 	return &CommandHandler{
@@ -64,6 +66,7 @@ func NewCommandHandler(
 		validator:    validator,
 		authProvider: authProvider,
 		uowFactory:   uowFactory,
+		broadcaster:  broadcaster,
 		l:            l,
 	}
 }
@@ -113,22 +116,29 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to set problem draft inactive")
 		}
 
-		now := time.Now()
+		timestamp := time.Now()
 
 		problemID, err := h.repo.UpsertProblemFromDraft(
 			ctx,
 			problemDraft,
 			command.TargetContestID,
 			constant.ProblemStatusPendingReview,
-			now,
+			timestamp,
 		)
 		if err != nil {
 			return nil, errors.WrapIf(err, "failed to create problem from draft")
 		}
 
-		problemVersionID, err := h.repo.CreateProblemVersionFromDraft(ctx, problemID, problemDraft, now)
+		problemVersionID, err := h.repo.CreateProblemVersionFromDraft(ctx, problemID, problemDraft, timestamp)
 		if err != nil {
 			return nil, errors.WrapIf(err, "failed to create problem version from draft")
+		}
+
+		if err := h.broadcaster.BroadcastSubmittedMessage(problemID, contract.MessageUser{
+			UserID:   user.UserID,
+			Username: user.Username,
+		}, timestamp); err != nil {
+			return nil, errors.WrapIf(err, "failed to broadcast submitted message")
 		}
 
 		return &Response{

@@ -37,6 +37,7 @@ type CommandHandler struct {
 	validator    *validator.Validate
 	authProvider contract.AuthProvider
 	uowFactory   contract.UnitOfWorkFactory
+	broadcaster  contract.MessageBroadcaster
 	l            logger.Logger
 }
 
@@ -45,6 +46,7 @@ func NewCommandHandler(
 	validator *validator.Validate,
 	authProvider contract.AuthProvider,
 	uowFactory contract.UnitOfWorkFactory,
+	broadcaster contract.MessageBroadcaster,
 	l logger.Logger,
 ) *CommandHandler {
 	return &CommandHandler{
@@ -52,6 +54,7 @@ func NewCommandHandler(
 		validator:    validator,
 		authProvider: authProvider,
 		uowFactory:   uowFactory,
+		broadcaster:  broadcaster,
 		l:            l,
 	}
 }
@@ -88,7 +91,9 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to get latest problem version ID")
 		}
 
-		resultID, err := h.repo.CreateTestResult(ctx, command, user.UserID, versionID, time.Now())
+		timestamp := time.Now()
+
+		resultID, err := h.repo.CreateTestResult(ctx, command, user.UserID, versionID, timestamp)
 		if err != nil {
 			return nil, errors.WrapIf(err, "failed to create test result")
 		}
@@ -106,6 +111,13 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 
 		if err := h.repo.UpdateProblemStatus(ctx, command.ProblemID, problemStatus); err != nil {
 			return nil, errors.WrapIf(err, "failed to update problem status")
+		}
+
+		if err := h.broadcaster.BroadcastTestedMessage(command.ProblemID, contract.MessageUser{
+			UserID:   user.UserID,
+			Username: user.Username,
+		}, string(command.Status), timestamp); err != nil {
+			return nil, errors.WrapIf(err, "failed to broadcast reviewed message")
 		}
 
 		return &Response{

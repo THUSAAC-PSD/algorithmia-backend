@@ -132,6 +132,7 @@ func (a *Application) ConfigMediator() error {
 			validator.New(),
 			authProvider,
 			uowFactory,
+			messageBroadcaster,
 			l,
 		)
 		if err := mediatr.RegisterRequestHandler[*submitproblemdraft.Command, *submitproblemdraft.Response](submitProblemDraftHandler); err != nil {
@@ -143,6 +144,7 @@ func (a *Application) ConfigMediator() error {
 			validator.New(),
 			authProvider,
 			uowFactory,
+			messageBroadcaster,
 			l,
 		)
 		if err := mediatr.RegisterRequestHandler[*reviewproblem.Command, *reviewproblem.Response](reviewProblemHandler); err != nil {
@@ -154,6 +156,7 @@ func (a *Application) ConfigMediator() error {
 			validator.New(),
 			authProvider,
 			uowFactory,
+			messageBroadcaster,
 			l,
 		)
 		if err := mediatr.RegisterRequestHandler[*testproblem.Command, *testproblem.Response](testProblemHandler); err != nil {
@@ -176,6 +179,7 @@ func (a *Application) ConfigMediator() error {
 			validator.New(),
 			authProvider,
 			uowFactory,
+			messageBroadcaster,
 			l,
 		)
 		if err := mediatr.RegisterRequestHandler[*markcomplete.Command, mediatr.Unit](markCompleteHandler); err != nil {
