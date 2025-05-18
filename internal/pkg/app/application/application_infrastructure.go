@@ -55,6 +55,7 @@ func (a *Application) migrateDatabase() error {
 	return a.ResolveDependencyFunc(func(g *gorm.DB) error {
 		err := g.AutoMigrate(
 			&database.User{},
+			&database.UserRole{},
 			&database.EmailVerificationCode{},
 			&database.Contest{},
 			&database.ProblemDifficulty{},

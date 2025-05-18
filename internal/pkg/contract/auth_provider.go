@@ -10,6 +10,7 @@ type AuthUser struct {
 	UserID   uuid.UUID
 	Email    string
 	Username string
+	Roles    []string
 }
 
 type AuthProvider interface {

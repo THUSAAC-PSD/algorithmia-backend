@@ -17,6 +17,7 @@ type User struct {
 	ProblemsReviewing []Problem            `gorm:"foreignKey:ReviewerID"`
 	ProblemsTesting   []Problem            `gorm:"foreignKey:TesterID"`
 	ChatMessages      []ProblemChatMessage `gorm:"foreignKey:SenderID"`
+	Roles             []UserRole           `gorm:"foreignKey:UserID"`
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

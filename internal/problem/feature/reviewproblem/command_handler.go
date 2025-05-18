@@ -34,6 +34,7 @@ type Repository interface {
 	) (uuid.UUID, error)
 	GetProblem(ctx context.Context, problemID uuid.UUID) (dto.ProblemStatusAndVersion, error)
 	UpdateProblemStatus(ctx context.Context, problemID uuid.UUID, status constant.ProblemStatus) error
+	UpdateProblemReviewer(ctx context.Context, problemID uuid.UUID, reviewerID uuid.UUID) error
 	SetProblemDraftActive(ctx context.Context, problemDraftID uuid.UUID) error
 }
 
@@ -121,6 +122,10 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			if err := h.repo.SetProblemDraftActive(ctx, problem.DraftID); err != nil {
 				return nil, errors.WrapIf(err, "failed to set problem draft active")
 			}
+		}
+
+		if err := h.repo.UpdateProblemReviewer(ctx, command.ProblemID, user.UserID); err != nil {
+			return nil, errors.WrapIf(err, "failed to update problem reviewer")
 		}
 
 		if err := h.broadcaster.BroadcastReviewedMessage(command.ProblemID, contract.MessageUser{

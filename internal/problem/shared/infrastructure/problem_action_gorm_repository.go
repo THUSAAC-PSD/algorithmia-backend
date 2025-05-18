@@ -169,6 +169,25 @@ func (r *ProblemActionGormRepository) UpdateProblemStatus(
 	return nil
 }
 
+func (r *ProblemActionGormRepository) UpdateProblemReviewer(
+	ctx context.Context,
+	problemID uuid.UUID,
+	reviewerID uuid.UUID,
+) error {
+	db := database.GetDBFromContext(ctx, r.db)
+
+	if res := db.WithContext(ctx).
+		Model(&database.Problem{}).
+		Where("problem_id = ?", problemID).
+		Update("reviewer_id", reviewerID); res.Error != nil {
+		return errors.WrapIf(res.Error, "failed to update problem reviewer ID")
+	} else if res.RowsAffected == 0 {
+		return errors.WithStack(shared.ErrProblemNotFound)
+	}
+
+	return nil
+}
+
 func (r *ProblemActionGormRepository) SetProblemDraftActive(ctx context.Context, problemDraftID uuid.UUID) error {
 	db := database.GetDBFromContext(ctx, r.db)
 

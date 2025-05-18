@@ -39,6 +39,7 @@ func (h *QueryHandler) Handle(
 			UserID:   user.UserID,
 			Username: user.Username,
 			Email:    user.Email,
+			Roles:    user.Roles,
 		},
 	}, nil
 }

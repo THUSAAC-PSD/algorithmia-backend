@@ -1,6 +1,7 @@
 package echoweb
 
 import (
+	"net/http"
 	"strings"
 	"time"
 
@@ -50,7 +51,11 @@ func AddEcho(container *dig.Container) error {
 			),
 		)
 		e.Use(middleware.BodyLimit(constant.BodyLimit))
-		e.Use(middleware.CORS()) // TODO: Add CORS config
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins:     []string{"http://localhost:5173"},
+			AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
+			AllowCredentials: true,
+		}))
 		e.Use(middleware.RequestID())
 		e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(30)))
 		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{

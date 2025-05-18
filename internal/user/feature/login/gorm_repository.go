@@ -21,7 +21,7 @@ func (r *GormRepository) GetUserByUsername(ctx context.Context, username string)
 	db := database.GetDBFromContext(ctx, r.db)
 
 	var user database.User
-	if err := db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.WithContext(ctx).Preload("Roles").Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // User not found
 		}
@@ -29,10 +29,16 @@ func (r *GormRepository) GetUserByUsername(ctx context.Context, username string)
 		return nil, err
 	}
 
+	roles := make([]string, 0, len(user.Roles))
+	for _, role := range user.Roles {
+		roles = append(roles, role.RoleType)
+	}
+
 	return &User{
 		UserID:         user.UserID,
 		Username:       user.Username,
 		HashedPassword: user.HashedPassword,
 		Email:          user.Email,
+		Roles:          roles,
 	}, nil
 }

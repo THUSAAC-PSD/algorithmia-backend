@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
@@ -34,12 +35,15 @@ func (m *HTTPSessionManager) SetUser(ctx context.Context, user login.User) error
 		Path:     "/",
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	sess.Values[echoweb.SessionUserKey] = contract.AuthUser{
 		UserID:   user.UserID,
 		Username: user.Username,
 		Email:    user.Email,
+		Roles:    user.Roles,
 	}
 
 	if err := sess.Save(eCtx.Request(), eCtx.Response()); err != nil {

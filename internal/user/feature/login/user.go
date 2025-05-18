@@ -7,4 +7,5 @@ type User struct {
 	Username       string
 	HashedPassword string
 	Email          string
+	Roles          []string
 }

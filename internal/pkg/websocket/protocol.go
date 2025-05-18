@@ -17,7 +17,7 @@ type IncomingMessageBase struct {
 type OutgoingMessageEnvelope struct {
 	Type      contract.MessageType `json:"type"`
 	Payload   interface{}          `json:"payload"`
-	RequestID string               `json:"request_id"`
+	RequestID string               `json:"request_id,omitempty"`
 }
 
 // ErrorServerPayload for sending errors back to the client
