@@ -6,6 +6,8 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/app"
 
 	"github.com/spf13/cobra"
+
+	_ "github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/tzinit"
 )
 
 var rootCmd = &cobra.Command{

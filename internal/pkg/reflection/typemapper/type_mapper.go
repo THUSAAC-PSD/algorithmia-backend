@@ -47,16 +47,10 @@ func discoverTypes() {
 					pkgTypes = map[string][]reflect.Type{}
 					packages[loadedType.PkgPath()] = pkgTypes
 				}
+
 				if pkgTypesPtr == nil {
 					pkgTypesPtr = map[string][]reflect.Type{}
 					packages[loadedTypePtr.PkgPath()] = pkgTypesPtr
-				}
-
-				if strings.Contains(loadedType.String(), "Test") {
-					n := GetFullTypeNameByType(loadedType)
-					n2 := GetTypeNameByType(loadedType)
-					fmt.Println(n)
-					fmt.Println(n2)
 				}
 
 				types[GetFullTypeNameByType(loadedType)] = append(
