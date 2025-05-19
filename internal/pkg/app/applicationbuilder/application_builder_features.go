@@ -1,14 +1,13 @@
 package applicationbuilder
 
 import (
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
-	contestShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
@@ -16,25 +15,22 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/sendmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
-	problemShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
-	problemInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared/infrastructure"
+	problemInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/infrastructure"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
-	problemDifficultyShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/submitproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
-	problemDraftShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
-	userShared "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared"
-	userInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/infrastructure"
+	userInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/infrastructure"
 
 	"emperror.dev/errors"
-	"github.com/go-playground/validator"
-	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
 )
 
@@ -68,154 +64,158 @@ func (b *ApplicationBuilder) AddFeatures() error {
 }
 
 func (b *ApplicationBuilder) addRoutes() error {
-	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*userShared.UserEndpointParams, error) {
-		users := v1Group.Group.Group("/users")
-		auth := v1Group.Group.Group("/auth")
-
-		ep := &userShared.UserEndpointParams{
-			Validator:  validator.New(),
-			UsersGroup: users,
-			AuthGroup:  auth,
-		}
-
-		return ep, nil
-	}); err != nil {
-		return errors.WrapIf(err, "failed to provide user endpoint params")
-	}
-
-	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*contestShared.ContestEndpointParams, error) {
-		contests := v1Group.Group.Group("/contests")
-
-		ep := &contestShared.ContestEndpointParams{
-			Validator:     validator.New(),
-			ContestsGroup: contests,
-		}
-
-		return ep, nil
-	}); err != nil {
-		return errors.WrapIf(err, "failed to provide contest endpoint params")
-	}
-
-	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*problemDifficultyShared.ProblemDifficultyEndpointParams, error) {
-		problemDifficulties := v1Group.Group.Group("/problem-difficulties")
-
-		ep := &problemDifficultyShared.ProblemDifficultyEndpointParams{
-			ProblemDifficultiesGroup: problemDifficulties,
-		}
-
-		return ep, nil
-	}); err != nil {
-		return errors.WrapIf(err, "failed to provide problem difficulty endpoint params")
-	}
-
-	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*problemDraftShared.ProblemDraftEndpointParams, error) {
-		problemDrafts := v1Group.Group.Group("/problem-drafts")
-
-		ep := &problemDraftShared.ProblemDraftEndpointParams{
-			ProblemDraftsGroup: problemDrafts,
-			Validator:          validator.New(),
-		}
-
-		return ep, nil
-	}); err != nil {
-		return errors.WrapIf(err, "failed to provide problem draft endpoint params")
-	}
-
-	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group) (*problemShared.ProblemEndpointParams, error) {
-		problems := v1Group.Group.Group("/problems")
-
-		ep := &problemShared.ProblemEndpointParams{
-			ProblemsGroup: problems,
-			Validator:     validator.New(),
-		}
-
-		return ep, nil
-	}); err != nil {
-		return errors.WrapIf(err, "failed to provide problem endpoint params")
-	}
-
-	if err := b.Container.Provide(func(e *echo.Echo, v1Group *echoweb.V1Group, hub *websocket.Hub, authProvider contract.AuthProvider, l logger.Logger) (*websocket.EndpointParams, error) {
-		ws := v1Group.Group.Group("/ws")
-
-		ep := &websocket.EndpointParams{
-			WebsocketGroup: ws,
-			Hub:            hub,
-			AuthProvider:   authProvider,
-			Logger:         l,
-		}
-
-		return ep, nil
-	}); err != nil {
+	// ======= Endpoint Params ========
+	if err := b.Container.Provide(websocket.NewEndpointParams); err != nil {
 		return errors.WrapIf(err, "failed to provide websocket endpoint params")
 	}
 
+	if err := b.Container.Provide(user.NewEndpointParams); err != nil {
+		return errors.WrapIf(err, "failed to provide user endpoint params")
+	}
+
+	if err := b.Container.Provide(contest.NewEndpointParams); err != nil {
+		return errors.WrapIf(err, "failed to provide contest endpoint params")
+	}
+
+	if err := b.Container.Provide(problem.NewEndpointParams); err != nil {
+		return errors.WrapIf(err, "failed to provide problem endpoint params")
+	}
+
+	if err := b.Container.Provide(problemdraft.NewEndpointParams); err != nil {
+		return errors.WrapIf(err, "failed to provide problem draft endpoint params")
+	}
+
+	if err := b.Container.Provide(problemdifficulty.NewEndpointParams); err != nil {
+		return errors.WrapIf(err, "failed to provide problem difficulty endpoint params")
+	}
+
+	// ======== Endpoints ========
+	if err := b.Container.Provide(websocket.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide websocket endpoint")
+	}
+
+	if err := b.Container.Provide(register.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide register endpoint")
+	}
+
+	if err := b.Container.Provide(requestemailverification.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide request email verification endpoint")
+	}
+
+	if err := b.Container.Provide(login.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide login endpoint")
+	}
+
+	if err := b.Container.Provide(logout.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide logout endpoint")
+	}
+
+	if err := b.Container.Provide(getcurrentuser.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide get current user endpoint")
+	}
+
+	if err := b.Container.Provide(createcontest.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide create contest endpoint")
+	}
+
+	if err := b.Container.Provide(listcontest.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list contest endpoint")
+	}
+
+	if err := b.Container.Provide(deletecontest.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide delete contest endpoint")
+	}
+
+	if err := b.Container.Provide(listproblemdifficulty.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem difficulty endpoint")
+	}
+
+	if err := b.Container.Provide(upsertproblemdraft.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide upsert problem draft endpoint")
+	}
+
+	if err := b.Container.Provide(listproblemdraft.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem draft endpoint")
+	}
+
+	if err := b.Container.Provide(submitproblemdraft.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide submit problem draft endpoint")
+	}
+
+	if err := b.Container.Provide(reviewproblem.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide review problem endpoint")
+	}
+
+	if err := b.Container.Provide(testproblem.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide test problem endpoint")
+	}
+
+	if err := b.Container.Provide(assigntester.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide assign tester endpoint")
+	}
+
+	if err := b.Container.Provide(markcomplete.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide mark complete endpoint")
+	}
+
+	if err := b.Container.Provide(listproblem.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem endpoint")
+	}
+
+	if err := b.Container.Provide(sendmessage.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide send message endpoint")
+	}
+
+	if err := b.Container.Provide(listmessage.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list message endpoint")
+	}
+
 	if err := b.Container.Provide(func(
-		wsep *websocket.EndpointParams,
-		uep *userShared.UserEndpointParams,
-		cep *contestShared.ContestEndpointParams,
-		pdep *problemDifficultyShared.ProblemDifficultyEndpointParams,
-		pdrep *problemDraftShared.ProblemDraftEndpointParams,
-		pep *problemShared.ProblemEndpointParams,
-		r *websocket.Router,
-	) ([]contract.Endpoint, error) {
-		wsEndpoint := websocket.NewEndpoint(wsep)
-
-		registerEndpoint := register.NewEndpoint(uep)
-		requestEmailVerificationEndpoint := requestemailverification.NewEndpoint(uep)
-		loginEndpoint := login.NewEndpoint(uep)
-		logoutEndpoint := logout.NewEndpoint(uep)
-		getCurrentUserEndpoint := getcurrentuser.NewEndpoint(uep)
-
-		createContestEndpoint := createcontest.NewEndpoint(cep)
-		listContestEndpoint := listcontest.NewEndpoint(cep)
-		deleteContestEndpoint := deletecontest.NewEndpoint(cep)
-
-		listProblemDifficultyEndpoint := listproblemdifficulty.NewEndpoint(pdep)
-
-		upsertProblemDraftEndpoint := upsertproblemdraft.NewEndpoint(pdrep)
-		listProblemDraftEndpoint := listproblemdraft.NewEndpoint(pdrep)
-		submitProblemDraftEndpoint := submitproblemdraft.NewEndpoint(pdrep)
-
-		reviewProblemEndpoint := reviewproblem.NewEndpoint(pep)
-		testProblemEndpoint := testproblem.NewEndpoint(pep)
-		assignTesterEndpoint := assigntester.NewEndpoint(pep)
-		markCompleteEndpoint := markcomplete.NewEndpoint(pep)
-		listProblemEndpoint := listproblem.NewEndpoint(pep)
-
-		sendMessageEndpoint := sendmessage.NewEndpoint(r, validator.New())
-		listMessageEndpoint := listmessage.NewEndpoint(pep)
-
-		endpoints := []contract.Endpoint{
-			wsEndpoint,
-
+		websocketEndpoint *websocket.Endpoint,
+		registerEndpoint *register.Endpoint,
+		requestEmailVerificationEndpoint *requestemailverification.Endpoint,
+		loginEndpoint *login.Endpoint,
+		logoutEndpoint *logout.Endpoint,
+		getCurrentUserEndpoint *getcurrentuser.Endpoint,
+		createContestEndpoint *createcontest.Endpoint,
+		listContestEndpoint *listcontest.Endpoint,
+		deleteContestEndpoint *deletecontest.Endpoint,
+		listProblemDifficultyEndpoint *listproblemdifficulty.Endpoint,
+		upsertProblemDraftEndpoint *upsertproblemdraft.Endpoint,
+		listProblemDraftEndpoint *listproblemdraft.Endpoint,
+		submitProblemDraftEndpoint *submitproblemdraft.Endpoint,
+		reviewProblemEndpoint *reviewproblem.Endpoint,
+		testProblemEndpoint *testproblem.Endpoint,
+		assignTesterEndpoint *assigntester.Endpoint,
+		markCompleteEndpoint *markcomplete.Endpoint,
+		listProblemEndpoint *listproblem.Endpoint,
+		sendMessageEndpoint *sendmessage.Endpoint,
+		listMessageEndpoint *listmessage.Endpoint,
+	) []contract.Endpoint {
+		return []contract.Endpoint{
+			websocketEndpoint,
 			registerEndpoint,
 			requestEmailVerificationEndpoint,
 			loginEndpoint,
 			logoutEndpoint,
 			getCurrentUserEndpoint,
-
 			createContestEndpoint,
 			listContestEndpoint,
 			deleteContestEndpoint,
-
 			listProblemDifficultyEndpoint,
-
 			upsertProblemDraftEndpoint,
 			listProblemDraftEndpoint,
 			submitProblemDraftEndpoint,
-
 			reviewProblemEndpoint,
 			testProblemEndpoint,
 			assignTesterEndpoint,
 			markCompleteEndpoint,
 			listProblemEndpoint,
-
 			sendMessageEndpoint,
 			listMessageEndpoint,
 		}
-		return endpoints, nil
 	}); err != nil {
-		return errors.WrapIf(err, "failed to provide endpoints")
+		return errors.WrapIf(err, "failed to provide endpoint array")
 	}
 
 	return nil

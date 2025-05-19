@@ -4,20 +4,21 @@ import (
 	"net/http"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 
 	"emperror.dev/errors"
 	"github.com/labstack/echo/v4"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type Endpoint struct {
-	*shared.ProblemEndpointParams
+	*problem.EndpointParams
+	handler *CommandHandler
 }
 
-func NewEndpoint(params *shared.ProblemEndpointParams) *Endpoint {
+func NewEndpoint(params *problem.EndpointParams, handler *CommandHandler) *Endpoint {
 	return &Endpoint{
-		ProblemEndpointParams: params,
+		EndpointParams: params,
+		handler:        handler,
 	}
 }
 
@@ -32,16 +33,12 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusBadRequest, "Invalid request format")
 		}
 
-		if err := e.Validator.StructCtx(ctx.Request().Context(), command); err != nil {
-			return httperror.New(http.StatusBadRequest, err.Error()).WithInternal(err)
+		if err := ctx.Validate(command); err != nil {
+			return err
 		}
 
-		_, err := mediatr.Send[*Command, mediatr.Unit](
-			ctx.Request().Context(),
-			command,
-		)
-
-		if errors.Is(err, shared.ErrProblemNotFound) {
+		err := e.handler.Handle(ctx.Request().Context(), command)
+		if errors.Is(err, problem.ErrProblemNotFound) {
 			return httperror.New(http.StatusNotFound, "The problem does not exist")
 		} else if errors.Is(err, ErrProblemNotAwaitingFinalCheck) {
 			return httperror.New(http.StatusUnprocessableEntity, "The problem is not in a state to be completed; it needs to have passed the test phase first")

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/echoweb"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
@@ -17,6 +18,21 @@ type EndpointParams struct {
 	Hub            *Hub
 	AuthProvider   contract.AuthProvider
 	Logger         logger.Logger
+}
+
+func NewEndpointParams(
+	v1Group *echoweb.V1Group,
+	hub *Hub,
+	authProvider contract.AuthProvider,
+	logger logger.Logger,
+) *EndpointParams {
+	websocketGroup := v1Group.Group.Group("/ws")
+	return &EndpointParams{
+		WebsocketGroup: websocketGroup,
+		Hub:            hub,
+		AuthProvider:   authProvider,
+		Logger:         logger,
+	}
 }
 
 type Endpoint struct {

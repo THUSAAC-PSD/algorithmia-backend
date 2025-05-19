@@ -1,5 +1,7 @@
 package createcontest
 
+import "github.com/google/uuid"
+
 type Response struct {
-	Contest Contest `json:"contest"`
+	ContestID uuid.UUID `json:"contest_id"`
 }

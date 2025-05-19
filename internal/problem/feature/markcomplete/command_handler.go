@@ -13,7 +13,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 var ErrProblemNotAwaitingFinalCheck = errors.New("problem is not awaiting final check")
@@ -50,42 +49,42 @@ func NewCommandHandler(
 	}
 }
 
-func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.Unit, error) {
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 	if command == nil {
-		return mediatr.Unit{}, errors.WithStack(customerror.ErrCommandNil)
+		return errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := h.validator.Struct(command); err != nil {
-		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
 	user, err := h.authProvider.MustGetUser(ctx)
 	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to get user from auth provider")
+		return errors.WrapIf(err, "failed to get user from auth provider")
 	}
 
 	// TODO: check if the current user has permission to mark the problem as completed or not
 
 	uow := h.uowFactory.New()
-	return uowhelper.DoWithResult(ctx, uow, h.l, func(ctx context.Context) (mediatr.Unit, error) {
+	return uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
 		if problemStatus, err := h.repo.GetProblemStatus(ctx, command.ProblemID); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to get problem status")
+			return errors.WrapIf(err, "failed to get problem status")
 		} else if problemStatus != constant.ProblemStatusAwaitingFinalCheck && problemStatus != constant.ProblemStatusCompleted {
-			return mediatr.Unit{}, errors.WithStack(ErrProblemNotAwaitingFinalCheck)
+			return errors.WithStack(ErrProblemNotAwaitingFinalCheck)
 		}
 
 		timestamp := time.Now()
 		if err := h.repo.MarkProblemCompleted(ctx, command.ProblemID, user.UserID, timestamp); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to mark problem as completed")
+			return errors.WrapIf(err, "failed to mark problem as completed")
 		}
 
 		if err := h.broadcaster.BroadcastCompletedMessage(command.ProblemID, contract.MessageUser{
 			UserID:   user.UserID,
 			Username: user.Username,
 		}, timestamp); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to broadcast completed message")
+			return errors.WrapIf(err, "failed to broadcast completed message")
 		}
 
-		return mediatr.Unit{}, nil
+		return nil
 	})
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract/uowhelper"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared/dto"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/dto"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"

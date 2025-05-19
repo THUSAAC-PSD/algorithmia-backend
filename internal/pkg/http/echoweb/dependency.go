@@ -2,7 +2,6 @@ package echoweb
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
@@ -13,6 +12,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 
 	"emperror.dev/errors"
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -33,23 +33,14 @@ func AddEcho(container *dig.Container) error {
 
 	if err := container.Provide(func(l logger.Logger, opts *Options, db *gorm.DB) *echo.Echo {
 		e := echo.New()
+
 		e.HideBanner = true
-
-		skipper := func(c echo.Context) bool {
-			return strings.Contains(c.Request().URL.Path, "metrics") ||
-				strings.Contains(c.Request().URL.Path, "health")
-		}
-
 		e.HTTPErrorHandler = httperror.Handler
+		e.Validator = &customValidator{validator: validator.New()}
 
 		e.Use(context.Middleware())
 		e.Use(middleware.Recover())
-		e.Use(
-			log.EchoLogger(
-				l,
-				log.WithSkipper(skipper),
-			),
-		)
+		e.Use(log.EchoLogger(l))
 		e.Use(middleware.BodyLimit(constant.BodyLimit))
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins:     []string{"http://localhost:5173"},
@@ -59,8 +50,7 @@ func AddEcho(container *dig.Container) error {
 		e.Use(middleware.RequestID())
 		e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(30)))
 		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-			Level:   constant.GzipLevel,
-			Skipper: skipper,
+			Level: constant.GzipLevel,
 		}))
 
 		store := gormstore.New(db, []byte(opts.SessionSecret))

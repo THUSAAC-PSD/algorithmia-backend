@@ -3,10 +3,7 @@ package logout
 import (
 	"context"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
-
 	"emperror.dev/errors"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type SessionManager interface {
@@ -25,15 +22,10 @@ func NewCommandHandler(sessionManager SessionManager) *CommandHandler {
 
 func (c *CommandHandler) Handle(
 	ctx context.Context,
-	command *Command,
-) (mediatr.Unit, error) {
-	if command == nil {
-		return mediatr.Unit{}, errors.WithStack(customerror.ErrCommandNil)
-	}
-
+) error {
 	if err := c.sessionManager.Delete(ctx); err != nil {
-		return mediatr.Unit{}, errors.WithStack(err)
+		return errors.WrapIf(err, "failed to delete session")
 	}
 
-	return mediatr.Unit{}, nil
+	return nil
 }

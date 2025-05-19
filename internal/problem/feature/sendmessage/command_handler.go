@@ -12,7 +12,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 var (
@@ -53,47 +52,47 @@ func NewCommandHandler(
 	}
 }
 
-func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.Unit, error) {
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 	if command == nil {
-		return mediatr.Unit{}, errors.WithStack(customerror.ErrCommandNil)
+		return errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := h.validator.Struct(command); err != nil {
-		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
 	user, err := h.authProvider.MustGetUser(ctx)
 	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to get user from auth provider")
+		return errors.WrapIf(err, "failed to get user from auth provider")
 	}
 
 	uow := h.uowFactory.New()
-	return uowhelper.DoWithResult(ctx, uow, h.l, func(ctx context.Context) (mediatr.Unit, error) {
+	return uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
 		if ok, err := h.repo.IsUserPartOfRoom(ctx, command.ProblemID, user.UserID); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if user is part of room")
+			return errors.WrapIf(err, "failed to check if user is part of room")
 		} else if !ok {
-			return mediatr.Unit{}, errors.WithStack(ErrUserNotPartOfRoom)
+			return errors.WithStack(ErrUserNotPartOfRoom)
 		}
 
 		timestamp := time.Now()
 
 		messageID, err := h.repo.CreateChatMessage(ctx, command, user.UserID, timestamp)
 		if err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to create chat message")
+			return errors.WrapIf(err, "failed to create chat message")
 		}
 
 		attachments, err := h.repo.GetAttachmentByMediaIDs(ctx, command.AttachmentMediaIDs)
 		if err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to get attachments")
+			return errors.WrapIf(err, "failed to get attachments")
 		}
 
 		if err := h.broadcaster.BroadcastUserMessage(command.ProblemID, messageID, command.Content, contract.MessageUser{
 			UserID:   user.UserID,
 			Username: user.Username,
 		}, attachments, timestamp); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to broadcast message")
+			return errors.WrapIf(err, "failed to broadcast message")
 		}
 
-		return mediatr.Unit{}, nil
+		return nil
 	})
 }

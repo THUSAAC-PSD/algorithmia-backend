@@ -9,6 +9,19 @@ import (
 	"emperror.dev/errors"
 )
 
+func Do(
+	ctx context.Context,
+	uow contract.UnitOfWork,
+	l logger.Logger,
+	fn func(innerCtx context.Context) error,
+) error {
+	_, err := DoWithResult[int](ctx, uow, l, func(innerCtx context.Context) (int, error) {
+		return 0, fn(innerCtx)
+	})
+
+	return err
+}
+
 func DoWithResult[T any](
 	ctx context.Context,
 	uow contract.UnitOfWork,

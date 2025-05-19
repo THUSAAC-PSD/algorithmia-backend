@@ -5,7 +5,7 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -43,7 +43,7 @@ func (r *GormRepository) UpdateProblemTester(ctx context.Context, problemID uuid
 		Update("tester_id", testerID); res.Error != nil {
 		return errors.WrapIf(res.Error, "failed to update problem tester")
 	} else if res.RowsAffected == 0 {
-		return errors.WithStack(shared.ErrProblemNotFound)
+		return errors.WithStack(problem.ErrProblemNotFound)
 	}
 
 	return nil

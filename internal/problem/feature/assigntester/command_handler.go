@@ -11,7 +11,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 var (
@@ -50,40 +49,40 @@ func NewCommandHandler(
 	}
 }
 
-func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.Unit, error) {
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 	if command == nil {
-		return mediatr.Unit{}, errors.WithStack(customerror.ErrCommandNil)
+		return errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := h.validator.Struct(command); err != nil {
-		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
 	_, err := h.authProvider.MustGetUser(ctx)
 	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to get user from auth provider")
+		return errors.WrapIf(err, "failed to get user from auth provider")
 	}
 
 	// TODO: check if the current user has permission to assign tester or not
 
 	uow := h.uowFactory.New()
-	return uowhelper.DoWithResult(ctx, uow, h.l, func(ctx context.Context) (mediatr.Unit, error) {
+	return uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
 		if ok, err := h.repo.DoesUserExist(ctx, command.UserID); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if user exists")
+			return errors.WrapIf(err, "failed to check if user exists")
 		} else if !ok {
-			return mediatr.Unit{}, errors.WithStack(ErrTargetUserNotFound)
+			return errors.WithStack(ErrTargetUserNotFound)
 		}
 
 		if isCompleted, err := h.repo.IsProblemCompleted(ctx, command.ProblemID); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if problem is completed")
+			return errors.WrapIf(err, "failed to check if problem is completed")
 		} else if isCompleted {
-			return mediatr.Unit{}, errors.WithStack(ErrProblemAlreadyCompleted)
+			return errors.WithStack(ErrProblemAlreadyCompleted)
 		}
 
 		if err := h.repo.UpdateProblemTester(ctx, command.ProblemID, command.UserID); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to update problem tester")
+			return errors.WrapIf(err, "failed to update problem tester")
 		}
 
-		return mediatr.Unit{}, nil
+		return nil
 	})
 }

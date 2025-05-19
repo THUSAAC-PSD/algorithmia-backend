@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/dto"
 
 	"github.com/google/uuid"
 )

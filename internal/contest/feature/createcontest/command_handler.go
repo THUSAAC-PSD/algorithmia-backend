@@ -50,6 +50,6 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 	}
 
 	return &Response{
-		Contest: contest,
+		ContestID: contest.ContestID,
 	}, nil
 }

@@ -6,10 +6,10 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/dto"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared/dto"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -61,7 +61,7 @@ func (r *ProblemActionGormRepository) GetLatestProblemVersionID(
 		Order("created_at DESC").
 		First(&pv).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return uuid.Nil, shared.ErrProblemNotFound
+			return uuid.Nil, problem.ErrProblemNotFound
 		}
 
 		return uuid.Nil, err
@@ -134,20 +134,20 @@ func (r *ProblemActionGormRepository) GetProblem(
 ) (dto.ProblemStatusAndVersion, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 
-	var problem dto.ProblemStatusAndVersion
+	var p dto.ProblemStatusAndVersion
 	if err := db.WithContext(ctx).
 		Model(&database.Problem{}).
 		Select("status", "problem_draft_id AS draft_id").
 		Where("problem_id = ?", problemID).
-		First(&problem).Error; err != nil {
+		First(&p).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.ProblemStatusAndVersion{}, shared.ErrProblemNotFound
+			return dto.ProblemStatusAndVersion{}, problem.ErrProblemNotFound
 		}
 
 		return dto.ProblemStatusAndVersion{}, errors.WrapIf(err, "failed to get problem status")
 	}
 
-	return problem, nil
+	return p, nil
 }
 
 func (r *ProblemActionGormRepository) UpdateProblemStatus(
@@ -163,7 +163,7 @@ func (r *ProblemActionGormRepository) UpdateProblemStatus(
 		Update("status", status); res.Error != nil {
 		return errors.WrapIf(res.Error, "failed to update problem status")
 	} else if res.RowsAffected == 0 {
-		return errors.WithStack(shared.ErrProblemNotFound)
+		return errors.WithStack(problem.ErrProblemNotFound)
 	}
 
 	return nil
@@ -182,7 +182,7 @@ func (r *ProblemActionGormRepository) UpdateProblemReviewer(
 		Update("reviewer_id", reviewerID); res.Error != nil {
 		return errors.WrapIf(res.Error, "failed to update problem reviewer ID")
 	} else if res.RowsAffected == 0 {
-		return errors.WithStack(shared.ErrProblemNotFound)
+		return errors.WithStack(problem.ErrProblemNotFound)
 	}
 
 	return nil

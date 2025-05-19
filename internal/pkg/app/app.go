@@ -23,7 +23,7 @@ func (a *App) Run() {
 }
 
 func configureApplication(app *application.Application) {
-	if err := app.ConfigMediator(); err != nil {
+	if err := app.AddHandlers(); err != nil {
 		app.Logger.Fatal(err)
 	}
 

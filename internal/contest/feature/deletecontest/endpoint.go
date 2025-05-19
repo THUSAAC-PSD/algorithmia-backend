@@ -3,20 +3,21 @@ package deletecontest
 import (
 	"net/http"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type Endpoint struct {
-	*shared.ContestEndpointParams
+	*contest.EndpointParams
+	handler *CommandHandler
 }
 
-func NewEndpoint(params *shared.ContestEndpointParams) *Endpoint {
+func NewEndpoint(params *contest.EndpointParams, handler *CommandHandler) *Endpoint {
 	return &Endpoint{
-		ContestEndpointParams: params,
+		EndpointParams: params,
+		handler:        handler,
 	}
 }
 
@@ -31,14 +32,11 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusBadRequest, "Invalid request format")
 		}
 
-		if err := e.Validator.StructCtx(ctx.Request().Context(), command); err != nil {
-			return httperror.New(http.StatusBadRequest, err.Error()).WithInternal(err)
+		if err := ctx.Validate(command); err != nil {
+			return err
 		}
 
-		_, err := mediatr.Send[*Command, mediatr.Unit](
-			ctx.Request().Context(),
-			command,
-		)
+		err := e.handler.Handle(ctx.Request().Context(), command)
 		if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}

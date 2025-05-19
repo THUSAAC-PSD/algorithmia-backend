@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/constant"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/constant"
 
 	"emperror.dev/errors"
 	"gorm.io/gorm"

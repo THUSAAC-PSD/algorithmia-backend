@@ -1,4 +1,4 @@
-package shared
+package problem
 
 import "emperror.dev/errors"
 

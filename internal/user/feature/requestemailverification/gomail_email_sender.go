@@ -3,9 +3,11 @@ package requestemailverification
 import (
 	"context"
 	"html/template"
+	"path/filepath"
+	"runtime"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/mailing"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared/constant"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/constant"
 
 	"emperror.dev/errors"
 	gomailpkg "github.com/wneessen/go-mail"
@@ -17,7 +19,15 @@ type GomailEmailSender struct {
 }
 
 func NewGomailEmailSender(opts *mailing.Options) (*GomailEmailSender, error) {
-	tmpl, err := template.ParseFiles("internal/user/feature/requestemailverification/email_template.gohtml")
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return nil, errors.New("failed to get caller information")
+	}
+
+	dirname := filepath.Dir(filename)
+	tmplFileName := filepath.Join(dirname, "email_template.gohtml")
+
+	tmpl, err := template.ParseFiles(tmplFileName)
 	if err != nil {
 		return nil, errors.WrapIf(err, "failed to parse email template")
 	}

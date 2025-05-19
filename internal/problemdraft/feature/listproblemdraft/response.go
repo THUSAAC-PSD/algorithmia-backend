@@ -1,6 +1,6 @@
 package listproblemdraft
 
-import "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
+import "github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/dto"
 
 type Response struct {
 	// TODO: Only return summary information

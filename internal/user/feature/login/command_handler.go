@@ -10,7 +10,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 const (
@@ -58,37 +57,37 @@ func NewCommandHandler(
 	}
 }
 
-func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.Unit, error) {
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 	if command == nil {
-		return mediatr.Unit{}, customerror.ErrCommandNil
+		return customerror.ErrCommandNil
 	}
 
 	if err := h.validator.StructCtx(ctx, command); err != nil {
-		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
 	uow := h.uowFactory.New()
-	return uowhelper.DoWithResult(ctx, uow, h.l, func(ctx context.Context) (mediatr.Unit, error) {
+	return uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
 		user, err := h.repo.GetUserByUsername(ctx, command.Username)
 		if err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to get user by username")
+			return errors.WrapIf(err, "failed to get user by username")
 		} else if user == nil {
 			// Prevent attackers from knowing if the user exists
 			_, _ = h.passwordChecker.Check(someHashedPassword, command.Password)
-			return mediatr.Unit{}, errors.WithStack(ErrInvalidCredentials)
+			return errors.WithStack(ErrInvalidCredentials)
 		}
 
 		ok, err := h.passwordChecker.Check(user.HashedPassword, command.Password)
 		if err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to check password")
+			return errors.WrapIf(err, "failed to check password")
 		} else if !ok {
-			return mediatr.Unit{}, errors.WithStack(ErrInvalidCredentials)
+			return errors.WithStack(ErrInvalidCredentials)
 		}
 
 		if err := h.sessionManager.SetUser(ctx, *user); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to set user in session")
+			return errors.WrapIf(err, "failed to set user in session")
 		}
 
-		return mediatr.Unit{}, nil
+		return nil
 	})
 }

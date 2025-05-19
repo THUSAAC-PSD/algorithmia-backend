@@ -6,8 +6,8 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared/infrastructure"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/infrastructure"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -24,13 +24,13 @@ func NewGormRepository(problemActionRepo infrastructure.ProblemActionRepository,
 }
 
 func (g *GormRepository) GetProblemStatus(ctx context.Context, problemID uuid.UUID) (constant.ProblemStatus, error) {
-	problem, err := g.problemActionRepo.GetProblem(ctx, problemID)
+	p, err := g.problemActionRepo.GetProblem(ctx, problemID)
 	if err != nil {
 		var emptyStatus constant.ProblemStatus
 		return emptyStatus, errors.WrapIf(err, "failed to get problem")
 	}
 
-	return problem.Status, nil
+	return p.Status, nil
 }
 
 func (g *GormRepository) MarkProblemCompleted(
@@ -49,7 +49,7 @@ func (g *GormRepository) MarkProblemCompleted(
 		Update("completed_by", completerID); res.Error != nil {
 		return errors.WrapIf(res.Error, "failed to update problem status")
 	} else if res.RowsAffected == 0 {
-		return errors.WithStack(shared.ErrProblemNotFound)
+		return errors.WithStack(problem.ErrProblemNotFound)
 	}
 
 	return nil

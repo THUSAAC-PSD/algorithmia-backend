@@ -6,7 +6,7 @@ import (
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/shared/dto"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/dto"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"

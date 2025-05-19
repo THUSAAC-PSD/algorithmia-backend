@@ -3,21 +3,22 @@ package createcontest
 import (
 	"net/http"
 
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
 
 	"emperror.dev/errors"
 	"github.com/labstack/echo/v4"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type Endpoint struct {
-	*shared.ContestEndpointParams
+	*contest.EndpointParams
+	handler *CommandHandler
 }
 
-func NewEndpoint(params *shared.ContestEndpointParams) *Endpoint {
+func NewEndpoint(params *contest.EndpointParams, handler *CommandHandler) *Endpoint {
 	return &Endpoint{
-		ContestEndpointParams: params,
+		EndpointParams: params,
+		handler:        handler,
 	}
 }
 
@@ -32,14 +33,11 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusBadRequest, "Invalid request format")
 		}
 
-		if err := e.Validator.StructCtx(ctx.Request().Context(), command); err != nil {
-			return httperror.New(http.StatusBadRequest, err.Error()).WithInternal(err)
+		if err := ctx.Validate(command); err != nil {
+			return err
 		}
 
-		response, err := mediatr.Send[*Command, *Response](
-			ctx.Request().Context(),
-			command,
-		)
+		response, err := e.handler.Handle(ctx.Request().Context(), command)
 
 		if errors.Is(err, ErrInvalidProblemCount) {
 			return httperror.New(http.StatusUnprocessableEntity, "Problem count must be greater than 0")

@@ -4,19 +4,20 @@ import (
 	"net/http"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/http/httperror"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type Endpoint struct {
-	*shared.UserEndpointParams
+	*user.EndpointParams
+	handler *CommandHandler
 }
 
-func NewEndpoint(params *shared.UserEndpointParams) *Endpoint {
+func NewEndpoint(params *user.EndpointParams, handler *CommandHandler) *Endpoint {
 	return &Endpoint{
-		UserEndpointParams: params,
+		EndpointParams: params,
+		handler:        handler,
 	}
 }
 
@@ -26,13 +27,11 @@ func (e *Endpoint) MapEndpoint() {
 
 func (e *Endpoint) handle() echo.HandlerFunc {
 	return func(ctx echo.Context) error {
-		_, err := mediatr.Send[*Command, mediatr.Unit](
-			ctx.Request().Context(),
-			&Command{},
-		)
+		err := e.handler.Handle(ctx.Request().Context())
 		if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}
+
 		return ctx.NoContent(http.StatusNoContent)
 	}
 }

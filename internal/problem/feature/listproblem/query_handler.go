@@ -4,13 +4,10 @@ import (
 	"context"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
 )
-
-type Query struct{}
 
 type Repository interface {
 	GetAllRelatedProblems(ctx context.Context, userID uuid.UUID) ([]ResponseProblem, error)
@@ -28,11 +25,7 @@ func NewQueryHandler(repo Repository, authProvider contract.AuthProvider) *Query
 	}
 }
 
-func (q *QueryHandler) Handle(ctx context.Context, query *Query) (*Response, error) {
-	if query == nil {
-		return nil, errors.WithStack(customerror.ErrCommandNil)
-	}
-
+func (q *QueryHandler) Handle(ctx context.Context) (*Response, error) {
 	user, err := q.authProvider.MustGetUser(ctx)
 	if err != nil {
 		return nil, errors.WrapIf(err, "failed to get user ID from auth provider")

@@ -8,7 +8,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type Repository interface {
@@ -27,23 +26,23 @@ func NewCommandHandler(repo Repository, validator *validator.Validate) *CommandH
 	}
 }
 
-func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.Unit, error) {
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 	if command == nil {
-		return mediatr.Unit{}, errors.WithStack(customerror.ErrCommandNil)
+		return errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := h.validator.Struct(command); err != nil {
-		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
 	contestID, err := uuid.Parse(command.ContestID)
 	if err != nil {
-		return mediatr.Unit{}, errors.WrapIf(customerror.ErrValidationFailed, "failed to parse contest ID")
+		return errors.WrapIf(customerror.ErrValidationFailed, "failed to parse contest ID")
 	}
 
 	if err := h.repo.DeleteContest(ctx, contestID); err != nil {
-		return mediatr.Unit{}, errors.WrapIf(err, "failed to delete contest in repository")
+		return errors.WrapIf(err, "failed to delete contest in repository")
 	}
 
-	return mediatr.Unit{}, nil
+	return nil
 }

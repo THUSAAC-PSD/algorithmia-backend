@@ -4,22 +4,23 @@ import (
 	"context"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/shared"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 type Endpoint struct {
 	r         *websocket.Router
 	validator *validator.Validate
+	handler   *CommandHandler
 }
 
-func NewEndpoint(r *websocket.Router, validator *validator.Validate) *Endpoint {
+func NewEndpoint(r *websocket.Router, validator *validator.Validate, handler *CommandHandler) *Endpoint {
 	return &Endpoint{
 		r:         r,
 		validator: validator,
+		handler:   handler,
 	}
 }
 
@@ -40,12 +41,8 @@ func (e *Endpoint) handle() websocket.Handler {
 			return
 		}
 
-		_, err := mediatr.Send[*Command, mediatr.Unit](
-			ctx,
-			&command,
-		)
-
-		if errors.Is(err, shared.ErrProblemNotFound) {
+		err := e.handler.Handle(ctx, &command)
+		if errors.Is(err, problem.ErrProblemNotFound) {
 			sendError("The problem does not exist", websocket.ErrCodeInvalidPayload)
 			return
 		} else if errors.Is(err, ErrMediaNotFound) {

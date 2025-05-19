@@ -13,7 +13,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
 const (
@@ -63,43 +62,43 @@ func NewCommandHandler(
 func (c *CommandHandler) Handle(
 	ctx context.Context,
 	command *Command,
-) (mediatr.Unit, error) {
+) error {
 	if command == nil {
-		return mediatr.Unit{}, errors.WithStack(customerror.ErrCommandNil)
+		return errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := c.validator.StructCtx(ctx, command); err != nil {
-		return mediatr.Unit{}, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
 	uow := c.uowFactory.New()
-	return uowhelper.DoWithResult(ctx, uow, c.l, func(ctx context.Context) (mediatr.Unit, error) {
+	return uowhelper.Do(ctx, uow, c.l, func(ctx context.Context) error {
 		if ok, err := c.repo.IsNotTimedOut(ctx, command.Email); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if email is not timed out")
+			return errors.WrapIf(err, "failed to check if email is not timed out")
 		} else if !ok {
-			return mediatr.Unit{}, errors.WithStack(ErrEmailTimedOut)
+			return errors.WithStack(ErrEmailTimedOut)
 		}
 
 		if ok, err := c.repo.IsNotAssociatedWithUser(ctx, command.Email); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to check if email is associated with user")
+			return errors.WrapIf(err, "failed to check if email is associated with user")
 		} else if !ok {
-			return mediatr.Unit{}, errors.WithStack(ErrEmailAssociatedWithUser)
+			return errors.WithStack(ErrEmailAssociatedWithUser)
 		}
 
 		code, err := c.generateVerificationCode()
 		if err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to generate verification code")
+			return errors.WrapIf(err, "failed to generate verification code")
 		}
 
 		if err := c.repo.CreateEmailVerificationCode(ctx, command.Email, code); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to create email verification code")
+			return errors.WrapIf(err, "failed to create email verification code")
 		}
 
 		if err := c.emailSender.SendVerificationEmail(ctx, command.Email, code); err != nil {
-			return mediatr.Unit{}, errors.WrapIf(err, "failed to send verification email")
+			return errors.WrapIf(err, "failed to send verification email")
 		}
 
-		return mediatr.Unit{}, nil
+		return nil
 	})
 }
 

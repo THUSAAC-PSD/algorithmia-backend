@@ -4,8 +4,6 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
@@ -25,197 +23,88 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
-	"github.com/mehdihadeli/go-mediatr"
 )
 
-func (a *Application) ConfigMediator() error {
-	return a.ResolveDependencyFunc(func(
-		registerRepo register.Repository,
-		requestEmailVerificationRepo requestemailverification.Repository,
-		loginRepo login.Repository,
-		createContestRepo createcontest.Repository,
-		listContestRepo listcontest.Repository,
-		deleteContestRepo deletecontest.Repository,
-		listProblemDifficultyRepo listproblemdifficulty.Repository,
-		upsertProblemDraftRepo upsertproblemdraft.Repository,
-		listProblemDraftRepo listproblemdraft.Repository,
-		submitProblemDraftRepo submitproblemdraft.Repository,
-		reviewProblemRepo reviewproblem.Repository,
-		testProblemRepo testproblem.Repository,
-		assignTesterRepo assigntester.Repository,
-		markCompleteRepo markcomplete.Repository,
-		listProblemRepo listproblem.Repository,
-		sendMessageRepo sendmessage.Repository,
-		listMessageRepo listmessage.Repository,
-		emailSender requestemailverification.EmailSender,
-		passwordHasher register.PasswordHasher,
-		passwordChecker login.PasswordChecker,
-		loginSessionManager login.SessionManager,
-		logoutSessionManager logout.SessionManager,
-		uowFactory contract.UnitOfWorkFactory,
-		l logger.Logger,
-		authProvider contract.AuthProvider,
-		messageBroadcaster contract.MessageBroadcaster,
-	) error {
-		registerHandler := register.NewCommandHandler(registerRepo, passwordHasher, validator.New(), uowFactory, l)
-		if err := mediatr.RegisterRequestHandler[*register.Command, *register.Response](registerHandler); err != nil {
-			return errors.WrapIf(err, "failed to register register command handler")
-		}
+func (a *Application) AddHandlers() error {
+	if err := a.Container.Provide(validator.New); err != nil {
+		return errors.WrapIf(err, "failed to provide validator")
+	}
 
-		requestEmailVerificationHandler := requestemailverification.NewCommandHandler(
-			requestEmailVerificationRepo,
-			emailSender,
-			validator.New(),
-			uowFactory,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*requestemailverification.Command, mediatr.Unit](requestEmailVerificationHandler); err != nil {
-			return errors.WrapIf(err, "failed to register request email verification command handler")
-		}
+	if err := a.Container.Provide(register.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide register command handler")
+	}
 
-		loginHandler := login.NewCommandHandler(
-			loginRepo,
-			passwordChecker,
-			loginSessionManager,
-			validator.New(),
-			uowFactory,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*login.Command, mediatr.Unit](loginHandler); err != nil {
-			return errors.WrapIf(err, "failed to register login command handler")
-		}
+	if err := a.Container.Provide(requestemailverification.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide request email verification command handler")
+	}
 
-		logoutHandler := logout.NewCommandHandler(logoutSessionManager)
-		if err := mediatr.RegisterRequestHandler[*logout.Command, mediatr.Unit](logoutHandler); err != nil {
-			return errors.WrapIf(err, "failed to register logout command handler")
-		}
+	if err := a.Container.Provide(login.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide login command handler")
+	}
 
-		getCurrentUserHandler := getcurrentuser.NewQueryHandler(authProvider)
-		if err := mediatr.RegisterRequestHandler[*getcurrentuser.Query, *getcurrentuser.Response](getCurrentUserHandler); err != nil {
-			return errors.WrapIf(err, "failed to register get current user query handler")
-		}
+	if err := a.Container.Provide(logout.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide logout command handler")
+	}
 
-		createContestHandler := createcontest.NewCommandHandler(createContestRepo, validator.New())
-		if err := mediatr.RegisterRequestHandler[*createcontest.Command, *createcontest.Response](createContestHandler); err != nil {
-			return errors.WrapIf(err, "failed to register create contest command handler")
-		}
+	if err := a.Container.Provide(getcurrentuser.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide get current user query handler")
+	}
 
-		listContestHandler := listcontest.NewQueryHandler(listContestRepo)
-		if err := mediatr.RegisterRequestHandler[*listcontest.Query, *listcontest.Response](listContestHandler); err != nil {
-			return errors.WrapIf(err, "failed to register list contest query handler")
-		}
+	if err := a.Container.Provide(createcontest.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide create contest command handler")
+	}
 
-		deleteContestHandler := deletecontest.NewCommandHandler(deleteContestRepo, validator.New())
-		if err := mediatr.RegisterRequestHandler[*deletecontest.Command, mediatr.Unit](deleteContestHandler); err != nil {
-			return errors.WrapIf(err, "failed to register delete contest query handler")
-		}
+	if err := a.Container.Provide(deletecontest.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide delete contest command handler")
+	}
 
-		listProblemDifficultyHandler := listproblemdifficulty.NewQueryHandler(listProblemDifficultyRepo)
-		if err := mediatr.RegisterRequestHandler[*listproblemdifficulty.Query, *listproblemdifficulty.Response](listProblemDifficultyHandler); err != nil {
-			return errors.WrapIf(err, "failed to register list problem difficulty query handler")
-		}
+	if err := a.Container.Provide(listcontest.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list contest query handler")
+	}
 
-		upsertProblemDraftHandler := upsertproblemdraft.NewCommandHandler(
-			upsertProblemDraftRepo,
-			validator.New(),
-			authProvider,
-		)
-		if err := mediatr.RegisterRequestHandler[*upsertproblemdraft.Command, *upsertproblemdraft.Response](upsertProblemDraftHandler); err != nil {
-			return errors.WrapIf(err, "failed to register upsert problem draft query handler")
-		}
+	if err := a.Container.Provide(listproblemdifficulty.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem difficulty query handler")
+	}
 
-		listProblemDraftHandler := listproblemdraft.NewQueryHandler(listProblemDraftRepo, authProvider)
-		if err := mediatr.RegisterRequestHandler[*listproblemdraft.Query, *listproblemdraft.Response](listProblemDraftHandler); err != nil {
-			return errors.WrapIf(err, "failed to register list problem draft query handler")
-		}
+	if err := a.Container.Provide(upsertproblemdraft.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide upsert problem draft command handler")
+	}
 
-		submitProblemDraftHandler := submitproblemdraft.NewCommandHandler(
-			submitProblemDraftRepo,
-			validator.New(),
-			authProvider,
-			uowFactory,
-			messageBroadcaster,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*submitproblemdraft.Command, *submitproblemdraft.Response](submitProblemDraftHandler); err != nil {
-			return errors.WrapIf(err, "failed to register submit problem draft command handler")
-		}
+	if err := a.Container.Provide(listproblemdraft.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem draft query handler")
+	}
 
-		reviewProblemHandler := reviewproblem.NewCommandHandler(
-			reviewProblemRepo,
-			validator.New(),
-			authProvider,
-			uowFactory,
-			messageBroadcaster,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*reviewproblem.Command, *reviewproblem.Response](reviewProblemHandler); err != nil {
-			return errors.WrapIf(err, "failed to register review problem command handler")
-		}
+	if err := a.Container.Provide(submitproblemdraft.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide submit problem draft command handler")
+	}
 
-		testProblemHandler := testproblem.NewCommandHandler(
-			testProblemRepo,
-			validator.New(),
-			authProvider,
-			uowFactory,
-			messageBroadcaster,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*testproblem.Command, *testproblem.Response](testProblemHandler); err != nil {
-			return errors.WrapIf(err, "failed to register test problem command handler")
-		}
+	if err := a.Container.Provide(assigntester.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide assign tester command handler")
+	}
 
-		assignTesterHandler := assigntester.NewCommandHandler(
-			assignTesterRepo,
-			validator.New(),
-			authProvider,
-			uowFactory,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*assigntester.Command, mediatr.Unit](assignTesterHandler); err != nil {
-			return errors.WrapIf(err, "failed to register assign tester command handler")
-		}
+	if err := a.Container.Provide(listmessage.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list message query handler")
+	}
 
-		markCompleteHandler := markcomplete.NewCommandHandler(
-			markCompleteRepo,
-			validator.New(),
-			authProvider,
-			uowFactory,
-			messageBroadcaster,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*markcomplete.Command, mediatr.Unit](markCompleteHandler); err != nil {
-			return errors.WrapIf(err, "failed to register mark complete command handler")
-		}
+	if err := a.Container.Provide(listproblem.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list problem query handler")
+	}
 
-		listProblemHandler := listproblem.NewQueryHandler(
-			listProblemRepo,
-			authProvider,
-		)
-		if err := mediatr.RegisterRequestHandler[*listproblem.Query, *listproblem.Response](listProblemHandler); err != nil {
-			return errors.WrapIf(err, "failed to register list problem query handler")
-		}
+	if err := a.Container.Provide(markcomplete.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide mark complete command handler")
+	}
 
-		sendMessageHandler := sendmessage.NewCommandHandler(
-			sendMessageRepo,
-			validator.New(),
-			authProvider,
-			uowFactory,
-			messageBroadcaster,
-			l,
-		)
-		if err := mediatr.RegisterRequestHandler[*sendmessage.Command, mediatr.Unit](sendMessageHandler); err != nil {
-			return errors.WrapIf(err, "failed to register send message command handler")
-		}
+	if err := a.Container.Provide(reviewproblem.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide review problem command handler")
+	}
 
-		listMessageHandler := listmessage.NewQueryHandler(
-			listMessageRepo,
-			authProvider,
-		)
-		if err := mediatr.RegisterRequestHandler[*listmessage.Query, *listmessage.Response](listMessageHandler); err != nil {
-			return errors.WrapIf(err, "failed to register list message query handler")
-		}
+	if err := a.Container.Provide(sendmessage.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide send message command handler")
+	}
 
-		return nil
-	})
+	if err := a.Container.Provide(testproblem.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide test problem command handler")
+	}
+
+	return nil
 }
