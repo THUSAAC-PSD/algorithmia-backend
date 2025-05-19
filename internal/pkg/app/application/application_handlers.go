@@ -4,7 +4,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
@@ -78,7 +78,7 @@ func (a *Application) AddHandlers() error {
 		return errors.WrapIf(err, "failed to provide submit problem draft command handler")
 	}
 
-	if err := a.Container.Provide(assigntester.NewCommandHandler); err != nil {
+	if err := a.Container.Provide(assigntesters.NewCommandHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide assign tester command handler")
 	}
 

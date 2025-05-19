@@ -30,7 +30,7 @@ type ResponseProblem struct {
 	Status            constant.ProblemStatus `json:"status"`
 	Creator           ResponseUser           `json:"creator"`
 	Reviewer          *ResponseUser          `json:"reviewer"`
-	Tester            *ResponseUser          `json:"tester"`
+	Testers           []ResponseUser         `json:"testers"`
 	TargetContest     *ResponseContest       `json:"target_contest"`
 	AssignedContest   *ResponseContest       `json:"assigned_contest"`
 	ProblemDifficulty dto.ProblemDifficulty  `json:"problem_difficulty"`

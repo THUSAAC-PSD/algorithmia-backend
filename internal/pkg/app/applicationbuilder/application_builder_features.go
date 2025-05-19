@@ -8,7 +8,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
@@ -150,7 +150,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide test problem endpoint")
 	}
 
-	if err := b.Container.Provide(assigntester.NewEndpoint); err != nil {
+	if err := b.Container.Provide(assigntesters.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide assign tester endpoint")
 	}
 
@@ -186,7 +186,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		submitProblemDraftEndpoint *submitproblemdraft.Endpoint,
 		reviewProblemEndpoint *reviewproblem.Endpoint,
 		testProblemEndpoint *testproblem.Endpoint,
-		assignTesterEndpoint *assigntester.Endpoint,
+		assignTesterEndpoint *assigntesters.Endpoint,
 		markCompleteEndpoint *markcomplete.Endpoint,
 		listProblemEndpoint *listproblem.Endpoint,
 		sendMessageEndpoint *sendmessage.Endpoint,
@@ -279,8 +279,8 @@ func (b *ApplicationBuilder) addRepositories() error {
 		return errors.WrapIf(err, "failed to provide shared problem action repository")
 	}
 
-	if err := b.Container.Provide(assigntester.NewGormRepository,
-		dig.As(new(assigntester.Repository))); err != nil {
+	if err := b.Container.Provide(assigntesters.NewGormRepository,
+		dig.As(new(assigntesters.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide assign tester repository")
 	}
 

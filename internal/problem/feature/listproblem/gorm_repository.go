@@ -37,9 +37,6 @@ type flatProblemData struct {
 	ReviewerID       uuid.NullUUID  `gorm:"column:reviewer_id"`
 	ReviewerUsername sql.NullString `gorm:"column:reviewer_username"`
 
-	TesterID       uuid.NullUUID  `gorm:"column:tester_id"`
-	TesterUsername sql.NullString `gorm:"column:tester_username"`
-
 	TargetContestID    uuid.NullUUID  `gorm:"column:target_contest_id"`
 	TargetContestTitle sql.NullString `gorm:"column:target_contest_title"`
 
@@ -48,6 +45,12 @@ type flatProblemData struct {
 
 	LatestVersionID           uuid.NullUUID `gorm:"column:latest_version_id"`
 	LatestVersionDifficultyID uuid.NullUUID `gorm:"column:latest_version_difficulty_id"`
+}
+
+type flatProblemTesterData struct {
+	ProblemID  uuid.UUID `gorm:"column:problem_id"`
+	TesterID   uuid.UUID `gorm:"column:tester_id"`
+	TesterName string    `gorm:"column:tester_username"`
 }
 
 func (r *GormRepository) GetAllRelatedProblems(
@@ -61,6 +64,27 @@ func (r *GormRepository) GetAllRelatedProblems(
 		return nil, errors.Wrap(err, "failed to fetch related problems")
 	}
 
+	var problemTesters []flatProblemTesterData
+	if err := db.WithContext(ctx).
+		Table("problem_testers pt").
+		Joins("LEFT JOIN users ON users.user_id = pt.user_user_id").
+		Select("pt.problem_problem_id as problem_id, pt.user_user_id as tester_id, users.username as tester_username").
+		Scan(&problemTesters).Error; err != nil {
+		return nil, errors.Wrap(err, "failed to fetch problem testers")
+	}
+
+	testerByProblemID := make(map[uuid.UUID][]ResponseUser)
+	for _, pt := range problemTesters {
+		if _, ok := testerByProblemID[pt.ProblemID]; !ok {
+			testerByProblemID[pt.ProblemID] = make([]ResponseUser, 0)
+		}
+
+		testerByProblemID[pt.ProblemID] = append(testerByProblemID[pt.ProblemID], ResponseUser{
+			UserID:   pt.TesterID,
+			Username: pt.TesterName,
+		})
+	}
+
 	latestVersionIDs := make([]uuid.UUID, 0, len(flatProblems))
 	difficultyIDs := make([]uuid.UUID, 0, len(flatProblems))
 
@@ -68,6 +92,7 @@ func (r *GormRepository) GetAllRelatedProblems(
 		if problem.LatestVersionID.Valid {
 			latestVersionIDs = append(latestVersionIDs, problem.LatestVersionID.UUID)
 		}
+
 		if problem.LatestVersionDifficultyID.Valid {
 			difficultyIDs = append(difficultyIDs, problem.LatestVersionDifficultyID.UUID)
 		}
@@ -92,6 +117,7 @@ func (r *GormRepository) GetAllRelatedProblems(
 				UserID:   problem.CreatorID,
 				Username: problem.CreatorUsername,
 			},
+			Testers:   testerByProblemID[problem.ProblemID],
 			CreatedAt: problem.ProblemCreatedAt,
 			UpdatedAt: problem.ProblemUpdatedAt,
 			Titles:    make([]ResponseProblemTitle, 0),
@@ -101,13 +127,6 @@ func (r *GormRepository) GetAllRelatedProblems(
 			p.Reviewer = &ResponseUser{
 				UserID:   problem.ReviewerID.UUID,
 				Username: problem.ReviewerUsername.String,
-			}
-		}
-
-		if problem.TesterID.Valid && problem.TesterUsername.Valid {
-			p.Tester = &ResponseUser{
-				UserID:   problem.TesterID.UUID,
-				Username: problem.TesterUsername.String,
 			}
 		}
 
@@ -149,7 +168,6 @@ func (r *GormRepository) fetchRelatedProblems(
 		Table("problems p").
 		Joins("LEFT JOIN users creator_u ON creator_u.user_id = p.creator_id").
 		Joins("LEFT JOIN users reviewer_u ON reviewer_u.user_id = p.reviewer_id").
-		Joins("LEFT JOIN users tester_u ON tester_u.user_id = p.tester_id").
 		Joins("LEFT JOIN contests target_c ON target_c.contest_id = p.target_contest_id").
 		Joins("LEFT JOIN contests assigned_c ON assigned_c.contest_id = p.assigned_contest_id").
 		Joins(`
@@ -175,18 +193,16 @@ func (r *GormRepository) fetchRelatedProblems(
             p.problem_draft_id,
             p.creator_id,
             p.reviewer_id,
-            p.tester_id,
             p.target_contest_id,
             p.assigned_contest_id,
             creator_u.username as creator_username,
             reviewer_u.username as reviewer_username,
-            tester_u.username as tester_username,
             target_c.title as target_contest_title,
             assigned_c.title as assigned_contest_title,
 			rpv.problem_version_id as latest_version_id,
             rpv.problem_difficulty_id as latest_version_difficulty_id 
         `).
-		Where("creator_id = ? OR reviewer_id = ? OR tester_id = ?", userID, userID, userID).
+		Where("creator_id = ? OR reviewer_id = ?", userID, userID).
 		Scan(&problems).Error; err != nil {
 		return nil, errors.Wrap(err, "failed to get all related problems")
 	}

@@ -1,11 +1,10 @@
-package assigntester
+package assigntesters
 
 import (
 	"context"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -20,30 +19,35 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db: db}
 }
 
-func (r *GormRepository) DoesUserExist(ctx context.Context, userID uuid.UUID) (bool, error) {
+func (r *GormRepository) DoUsersExist(ctx context.Context, userIDs []uuid.UUID) (bool, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 
 	var count int64
 	if err := db.WithContext(ctx).
 		Model(&database.User{}).
-		Where("user_id = ?", userID).
+		Where("user_id IN ?", userIDs).
 		Count(&count).Error; err != nil {
-		return false, errors.WrapIf(err, "failed to check if user exists")
+		return false, errors.WrapIf(err, "failed to check if users exist")
 	}
 
-	return count > 0, nil
+	return int(count) == len(userIDs), nil
 }
 
-func (r *GormRepository) UpdateProblemTester(ctx context.Context, problemID uuid.UUID, testerID uuid.UUID) error {
+func (r *GormRepository) UpdateProblemTesters(ctx context.Context, problemID uuid.UUID, testerIDs []uuid.UUID) error {
 	db := database.GetDBFromContext(ctx, r.db)
 
-	if res := db.WithContext(ctx).
-		Model(&database.Problem{}).
-		Where("problem_id = ?", problemID).
-		Update("tester_id", testerID); res.Error != nil {
-		return errors.WrapIf(res.Error, "failed to update problem tester")
-	} else if res.RowsAffected == 0 {
-		return errors.WithStack(problem.ErrProblemNotFound)
+	problem := database.Problem{ProblemID: problemID}
+
+	testers := make([]database.User, 0, len(testerIDs))
+	for _, id := range testerIDs {
+		testers = append(testers, database.User{UserID: id})
+	}
+
+	if err := db.WithContext(ctx).
+		Model(&problem).
+		Association("Testers").
+		Replace(testers); err != nil {
+		return errors.WrapIf(err, "failed to replace problem testers")
 	}
 
 	return nil

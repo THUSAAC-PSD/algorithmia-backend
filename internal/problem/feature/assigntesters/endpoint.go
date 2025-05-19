@@ -1,4 +1,4 @@
-package assigntester
+package assigntesters
 
 import (
 	"net/http"
@@ -23,7 +23,7 @@ func NewEndpoint(params *problem.EndpointParams, handler *CommandHandler) *Endpo
 }
 
 func (e *Endpoint) MapEndpoint() {
-	e.ProblemsGroup.PUT("/:problem_id/tester", e.handle())
+	e.ProblemsGroup.PUT("/:problem_id/testers", e.handle())
 }
 
 func (e *Endpoint) handle() echo.HandlerFunc {

@@ -15,7 +15,7 @@ type Problem struct {
 	TargetContestID   uuid.NullUUID        `gorm:"type:uuid"`
 	AssignedContestID uuid.NullUUID        `gorm:"type:uuid"`
 	ReviewerID        uuid.NullUUID        `gorm:"type:uuid"`
-	TesterID          uuid.NullUUID        `gorm:"type:uuid"`
+	Testers           []User               `gorm:"many2many:problem_testers"`
 	ProblemVersions   []ProblemVersion     `gorm:"foreignKey:ProblemID"`
 	ChatMessages      []ProblemChatMessage `gorm:"foreignKey:ProblemID"`
 	CompletedAt       sql.NullTime

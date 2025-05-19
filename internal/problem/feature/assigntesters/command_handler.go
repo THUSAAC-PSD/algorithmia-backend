@@ -1,4 +1,4 @@
-package assigntester
+package assigntesters
 
 import (
 	"context"
@@ -20,9 +20,9 @@ var (
 )
 
 type Repository interface {
-	UpdateProblemTester(ctx context.Context, problemID uuid.UUID, testerID uuid.UUID) error
+	UpdateProblemTesters(ctx context.Context, problemID uuid.UUID, testerIDs []uuid.UUID) error
 	IsProblemCompleted(ctx context.Context, problemID uuid.UUID) (bool, error)
-	DoesUserExist(ctx context.Context, userID uuid.UUID) (bool, error)
+	DoUsersExist(ctx context.Context, userIDs []uuid.UUID) (bool, error)
 }
 
 type CommandHandler struct {
@@ -67,8 +67,8 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 
 	uow := h.uowFactory.New()
 	return uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
-		if ok, err := h.repo.DoesUserExist(ctx, command.UserID); err != nil {
-			return errors.WrapIf(err, "failed to check if user exists")
+		if ok, err := h.repo.DoUsersExist(ctx, command.TesterIDs); err != nil {
+			return errors.WrapIf(err, "failed to check if users exist")
 		} else if !ok {
 			return errors.WithStack(ErrTargetUserNotFound)
 		}
@@ -79,7 +79,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 			return errors.WithStack(ErrProblemAlreadyCompleted)
 		}
 
-		if err := h.repo.UpdateProblemTester(ctx, command.ProblemID, command.UserID); err != nil {
+		if err := h.repo.UpdateProblemTesters(ctx, command.ProblemID, command.TesterIDs); err != nil {
 			return errors.WrapIf(err, "failed to update problem tester")
 		}
 
