@@ -28,7 +28,7 @@ func (r *GormRepository) IsUserPartOfRoom(ctx context.Context, problemID uuid.UU
 		Model(&database.Problem{}).
 		Where("problem_id = ? AND (creator_id = ? OR reviewer_id = ? OR tester_id = ?)", problemID, userID, userID, userID).
 		Count(&count).Error; err != nil {
-		return false, err
+		return false, errors.WrapIf(err, "failed to check if user is part of room")
 	}
 
 	return count > 0, nil

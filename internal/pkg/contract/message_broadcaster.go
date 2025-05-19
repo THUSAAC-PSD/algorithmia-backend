@@ -20,15 +20,15 @@ const (
 )
 
 type MessageUser struct {
-	UserID   uuid.UUID
-	Username string
+	UserID   uuid.UUID `json:"user_id"`
+	Username string    `json:"username"`
 }
 
 type MessageAttachment struct {
-	URL      string
-	FileName string
-	MIMEType string
-	Size     uint64
+	URL      string `json:"url"`
+	FileName string `json:"file_name"`
+	MIMEType string `json:"mime_type"`
+	Size     uint64 `json:"size"`
 }
 
 type MessageBroadcaster interface {

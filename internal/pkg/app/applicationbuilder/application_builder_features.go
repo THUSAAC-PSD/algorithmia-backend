@@ -10,6 +10,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/logger"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntester"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/reviewproblem"
@@ -182,6 +183,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		listProblemEndpoint := listproblem.NewEndpoint(pep)
 
 		sendMessageEndpoint := sendmessage.NewEndpoint(r, validator.New())
+		listMessageEndpoint := listmessage.NewEndpoint(pep)
 
 		endpoints := []contract.Endpoint{
 			wsEndpoint,
@@ -209,6 +211,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			listProblemEndpoint,
 
 			sendMessageEndpoint,
+			listMessageEndpoint,
 		}
 		return endpoints, nil
 	}); err != nil {
@@ -294,6 +297,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(sendmessage.NewGormRepository,
 		dig.As(new(sendmessage.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide send message repository")
+	}
+
+	if err := b.Container.Provide(listmessage.NewGormRepository,
+		dig.As(new(listmessage.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide list message repository")
 	}
 
 	return nil

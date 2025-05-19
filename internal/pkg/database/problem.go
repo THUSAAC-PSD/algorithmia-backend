@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,8 @@ type Problem struct {
 	TesterID          uuid.NullUUID        `gorm:"type:uuid"`
 	ProblemVersions   []ProblemVersion     `gorm:"foreignKey:ProblemID"`
 	ChatMessages      []ProblemChatMessage `gorm:"foreignKey:ProblemID"`
+	CompletedAt       sql.NullTime
+	CompletedBy       uuid.NullUUID `gorm:"type:uuid"`
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	DeletedAt         time.Time

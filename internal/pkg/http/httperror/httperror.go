@@ -80,12 +80,15 @@ func Handler(err error, c echo.Context) {
 	var httpErr *HTTPError
 	if httpErr = mapCustomErrorToHTTPError(err); httpErr != nil {
 		response = httpErr
+		statusCode = httpErr.StatusCode
 	} else if errors.As(err, &httpErr); httpErr != nil {
 		response = httpErr
+		statusCode = httpErr.StatusCode
 	} else {
 		var echoErr *echo.HTTPError
 		if errors.As(err, &echoErr) {
 			statusCode = echoErr.Code
+
 			if msg, ok := echoErr.Message.(string); ok {
 				response = map[string]interface{}{"message": msg}
 			} else {

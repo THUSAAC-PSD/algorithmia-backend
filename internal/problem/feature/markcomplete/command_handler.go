@@ -19,7 +19,7 @@ import (
 var ErrProblemNotAwaitingFinalCheck = errors.New("problem is not awaiting final check")
 
 type Repository interface {
-	MarkProblemCompleted(ctx context.Context, problemID uuid.UUID) error
+	MarkProblemCompleted(ctx context.Context, problemID uuid.UUID, completerID uuid.UUID, timestamp time.Time) error
 	GetProblemStatus(ctx context.Context, problemID uuid.UUID) (constant.ProblemStatus, error)
 }
 
@@ -75,7 +75,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (mediatr.
 		}
 
 		timestamp := time.Now()
-		if err := h.repo.MarkProblemCompleted(ctx, command.ProblemID); err != nil {
+		if err := h.repo.MarkProblemCompleted(ctx, command.ProblemID, user.UserID, timestamp); err != nil {
 			return mediatr.Unit{}, errors.WrapIf(err, "failed to mark problem as completed")
 		}
 

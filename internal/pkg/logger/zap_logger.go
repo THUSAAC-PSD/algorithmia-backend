@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	gormlogger "gorm.io/gorm/logger"
 	"moul.io/zapgorm2"
 )
 
@@ -43,6 +44,7 @@ func NewZapLogger(
 	zapLogger.initLogger(env)
 
 	gl := zapgorm2.New(zapLogger.logger)
+	gl.LogMode(gormlogger.Info)
 	gl.SetAsDefault()
 
 	return zapLogger
