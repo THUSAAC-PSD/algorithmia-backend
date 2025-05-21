@@ -22,10 +22,23 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 func (g *GormRepository) GetAllContests(ctx context.Context) ([]Contest, error) {
 	db := database.GetDBFromContext(ctx, g.db)
 
-	var contests []Contest
+	var contests []database.Contest
 	if err := db.WithContext(ctx).Find(&contests).Error; err != nil {
 		return nil, errors.Wrap(err, "failed to get all contests")
 	}
 
-	return contests, nil
+	results := make([]Contest, 0, len(contests))
+	for _, contest := range contests {
+		results = append(results, Contest{
+			ContestID:        contest.ContestID,
+			Title:            contest.Title,
+			Description:      contest.Description,
+			MinProblemCount:  contest.MinProblemCount,
+			MaxProblemCount:  contest.MaxProblemCount,
+			DeadlineDatetime: contest.DeadlineDatetime,
+			CreatedAt:        contest.CreatedAt,
+		})
+	}
+
+	return results, nil
 }

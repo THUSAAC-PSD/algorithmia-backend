@@ -17,5 +17,5 @@ type Contest struct {
 	AssignedProblems []Problem `gorm:"foreignKey:AssignedContestID"`
 	DeadlineDatetime time.Time
 	CreatedAt        time.Time
-	DeletedAt        gorm.DeletedAt `gorm:"index"`
+	Deleted          gorm.DeletedAt `gorm:"index"`
 }

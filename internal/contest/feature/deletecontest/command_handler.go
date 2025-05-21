@@ -35,12 +35,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
-	contestID, err := uuid.Parse(command.ContestID)
-	if err != nil {
-		return errors.WrapIf(customerror.ErrValidationFailed, "failed to parse contest ID")
-	}
-
-	if err := h.repo.DeleteContest(ctx, contestID); err != nil {
+	if err := h.repo.DeleteContest(ctx, command.ContestID); err != nil {
 		return errors.WrapIf(err, "failed to delete contest in repository")
 	}
 
