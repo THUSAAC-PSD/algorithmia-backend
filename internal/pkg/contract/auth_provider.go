@@ -21,7 +21,7 @@ type AuthUserDetails struct {
 type AuthProvider interface {
 	GetUser(ctx context.Context) (*AuthUser, error)
 
-	Can(ctx context.Context, permissionName string) (bool, error)
+	Can(ctx context.Context, permissionNames ...string) (bool, error)
 
 	MustGetUser(ctx context.Context) (AuthUser, error)
 	MustGetUserDetails(ctx context.Context, userID uuid.UUID) (*AuthUserDetails, error)

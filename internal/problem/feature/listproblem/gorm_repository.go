@@ -56,10 +56,22 @@ type flatProblemTesterData struct {
 func (r *GormRepository) GetAllRelatedProblems(
 	ctx context.Context,
 	userID uuid.UUID,
+	showAll bool,
+	showCreated bool,
+	showAllPendingReview bool,
+	showAssignedTesting bool,
 ) ([]ResponseProblem, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 
-	flatProblems, err := r.fetchRelatedProblems(ctx, db, userID)
+	flatProblems, err := r.fetchRelatedProblems(
+		ctx,
+		db,
+		userID,
+		showAll,
+		showCreated,
+		showAllPendingReview,
+		showAssignedTesting,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch related problems")
 	}
@@ -162,14 +174,19 @@ func (r *GormRepository) fetchRelatedProblems(
 	ctx context.Context,
 	db *gorm.DB,
 	userID uuid.UUID,
+	showAll bool,
+	showCreated bool,
+	showAllPendingReview bool,
+	showAssignedTesting bool,
 ) ([]flatProblemData, error) {
 	var problems []flatProblemData
-	if err := db.WithContext(ctx).
+	query := db.WithContext(ctx).
 		Table("problems p").
 		Joins("LEFT JOIN users creator_u ON creator_u.user_id = p.creator_id").
 		Joins("LEFT JOIN users reviewer_u ON reviewer_u.user_id = p.reviewer_id").
 		Joins("LEFT JOIN contests target_c ON target_c.contest_id = p.target_contest_id").
 		Joins("LEFT JOIN contests assigned_c ON assigned_c.contest_id = p.assigned_contest_id").
+		Joins("LEFT JOIN problem_testers pr ON pr.problem_problem_id = p.problem_id").
 		Joins(`
 			LEFT JOIN LATERAL (
 				SELECT
@@ -202,8 +219,25 @@ func (r *GormRepository) fetchRelatedProblems(
 			rpv.problem_version_id as latest_version_id,
             rpv.problem_difficulty_id as latest_version_difficulty_id 
         `).
-		Where("creator_id = ? OR reviewer_id = ?", userID, userID).
-		Scan(&problems).Error; err != nil {
+		Where("reviewer_id = ?", userID)
+
+	if showAll {
+		query = query.Or("0 = 0")
+	} else {
+		if showCreated {
+			query = query.Or("creator_id = ?", userID)
+		}
+
+		if showAllPendingReview {
+			query = query.Or("status = ?", constant.ProblemStatusPendingReview)
+		}
+
+		if showAssignedTesting {
+			query = query.Or("pr.user_user_id = ?", userID)
+		}
+	}
+
+	if err := query.Scan(&problems).Error; err != nil {
 		return nil, errors.Wrap(err, "failed to get all related problems")
 	}
 

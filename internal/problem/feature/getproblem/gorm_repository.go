@@ -41,6 +41,7 @@ func (r *GormRepository) GetProblem(
 		Preload("ProblemVersions.Details").
 		Preload("ProblemVersions.Examples").
 		Preload("ProblemVersions.ProblemDifficulty").
+		Preload("ProblemVersions.ProblemDifficulty.DisplayNames").
 		Preload("TargetContest").
 		Preload("AssignedContest").
 		Where("problem_id = ?", problemID).

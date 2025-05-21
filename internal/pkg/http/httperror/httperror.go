@@ -118,14 +118,12 @@ func Handler(err error, c echo.Context) {
 func mapCustomErrorToHTTPError(err error) *HTTPError {
 	if errors.Is(err, customerror.ErrValidationFailed) {
 		return New(http.StatusBadRequest, err.Error()).WithInternal(err)
-	}
-
-	if errors.Is(err, customerror.ErrCommandNil) {
+	} else if errors.Is(err, customerror.ErrCommandNil) {
 		return New(http.StatusBadRequest, err.Error()).WithInternal(err)
-	}
-
-	if errors.Is(err, customerror.ErrNotAuthenticated) {
+	} else if errors.Is(err, customerror.ErrNotAuthenticated) {
 		return New(http.StatusUnauthorized, err.Error()).WithInternal(err).WithType(ErrTypeNotAuthenticated)
+	} else if errors.Is(err, customerror.ErrBaseNoPermission) {
+		return New(http.StatusForbidden, err.Error()).WithInternal(err).WithType(ErrTypeNoPermission)
 	}
 
 	return nil

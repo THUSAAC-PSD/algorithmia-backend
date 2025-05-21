@@ -9,6 +9,7 @@ const (
 	ErrTypeInvalidEmailVerificationCode ErrorType = "invalid_email_verification_code"
 	ErrTypeRateLimitExceeded            ErrorType = "rate_limit_exceeded"
 	ErrTypeIncompleteProblemDraft       ErrorType = "incomplete_problem_draft"
+	ErrTypeNoPermission                 ErrorType = "no_permission"
 )
 
 func (e ErrorType) String() string {

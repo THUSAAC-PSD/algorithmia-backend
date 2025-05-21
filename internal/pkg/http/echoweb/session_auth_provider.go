@@ -93,7 +93,7 @@ func (s *SessionAuthProvider) MustGetUserDetails(
 	}, nil
 }
 
-func (s *SessionAuthProvider) Can(ctx context.Context, permissionName string) (bool, error) {
+func (s *SessionAuthProvider) Can(ctx context.Context, permissionNames ...string) (bool, error) {
 	user, err := s.MustGetUser(ctx)
 	if err != nil {
 		return false, errors.WrapIf(err, "failed to get user")
@@ -102,19 +102,27 @@ func (s *SessionAuthProvider) Can(ctx context.Context, permissionName string) (b
 	db := database.GetDBFromContext(ctx, s.db)
 
 	// TODO: Cache
-	var permissionNames []string
+	var u database.User
 	if err := db.WithContext(ctx).
-		Model(&database.User{
-			UserID: user.UserID,
-		}).
-		Select("permissions.name").
-		Preload("Permissions").
-		Scan(&permissionNames).Error; err != nil {
-		return false, errors.WrapIf(err, "failed to get permissions")
+		Model(&database.User{}).
+		Preload("Roles").
+		Preload("Roles.Permissions").
+		Where("user_id", user.UserID).
+		First(&u).Error; err != nil {
+		return false, errors.WrapIf(err, "failed to get user from db")
 	}
 
-	for _, p := range permissionNames {
-		if p == permissionName {
+	for _, r := range u.Roles {
+		if r.IsSuperAdmin {
+			return true, nil
+		}
+
+		for _, p := range *r.Permissions {
+			for _, permissionName := range permissionNames {
+				if p.Name == permissionName {
+					return true, nil
+				}
+			}
 			return true, nil
 		}
 	}
