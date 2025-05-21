@@ -13,6 +13,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/sendmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/testproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/deleteproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/submitproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
@@ -109,6 +110,10 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(testproblem.NewCommandHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide test problem command handler")
+	}
+
+	if err := a.Container.Provide(deleteproblemdraft.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide delete problem draft command handler")
 	}
 
 	return nil

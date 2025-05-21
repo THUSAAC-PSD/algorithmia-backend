@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type ProblemDraft struct {
@@ -17,5 +18,5 @@ type ProblemDraft struct {
 	IsActive            bool                  // False after the problem draft is submitted, then true again when it needs revision
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
-	DeletedAt           time.Time
+	Deleted             gorm.DeletedAt `gorm:"index"`
 }

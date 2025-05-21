@@ -20,6 +20,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdifficulty/feature/listproblemdifficulty"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/deleteproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/listproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/submitproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
@@ -143,6 +144,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide submit problem draft endpoint")
 	}
 
+	if err := b.Container.Provide(deleteproblemdraft.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide delete problem draft endpoint")
+	}
+
 	if err := b.Container.Provide(reviewproblem.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide review problem endpoint")
 	}
@@ -189,6 +194,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		upsertProblemDraftEndpoint *upsertproblemdraft.Endpoint,
 		listProblemDraftEndpoint *listproblemdraft.Endpoint,
 		submitProblemDraftEndpoint *submitproblemdraft.Endpoint,
+		deleteProblemDraftEndpoint *deleteproblemdraft.Endpoint,
 		reviewProblemEndpoint *reviewproblem.Endpoint,
 		testProblemEndpoint *testproblem.Endpoint,
 		assignTesterEndpoint *assigntesters.Endpoint,
@@ -212,6 +218,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			upsertProblemDraftEndpoint,
 			listProblemDraftEndpoint,
 			submitProblemDraftEndpoint,
+			deleteProblemDraftEndpoint,
 			reviewProblemEndpoint,
 			testProblemEndpoint,
 			assignTesterEndpoint,
@@ -314,6 +321,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(getproblem.NewGormRepository,
 		dig.As(new(getproblem.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide get problem repository")
+	}
+
+	if err := b.Container.Provide(deleteproblemdraft.NewGormRepository,
+		dig.As(new(deleteproblemdraft.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide delete problem draft repository")
 	}
 
 	return nil

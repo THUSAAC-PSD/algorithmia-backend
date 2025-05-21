@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Contest struct {
@@ -16,5 +17,5 @@ type Contest struct {
 	AssignedProblems []Problem `gorm:"foreignKey:AssignedContestID"`
 	DeadlineDatetime time.Time
 	CreatedAt        time.Time
-	DeletedAt        time.Time
+	DeletedAt        gorm.DeletedAt `gorm:"index"`
 }
