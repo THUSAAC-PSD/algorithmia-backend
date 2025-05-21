@@ -18,6 +18,7 @@ type Repository interface {
 		showCreated bool,
 		showAllPendingReview bool,
 		showAssignedTesting bool,
+		onlyShowCompleted bool,
 	) ([]ResponseProblem, error)
 }
 
@@ -33,7 +34,7 @@ func NewQueryHandler(repo Repository, authProvider contract.AuthProvider) *Query
 	}
 }
 
-func (q *QueryHandler) Handle(ctx context.Context) (*Response, error) {
+func (q *QueryHandler) Handle(ctx context.Context, onlyShowCompleted bool) (*Response, error) {
 	user, err := q.authProvider.MustGetUser(ctx)
 	if err != nil {
 		return nil, errors.WrapIf(err, "failed to get user ID from auth provider")
@@ -52,8 +53,9 @@ func (q *QueryHandler) Handle(ctx context.Context) (*Response, error) {
 	)
 
 	for _, p := range details.Permissions {
-		if p == constant.PermissionProblemListAll {
+		if details.IsSuperAdmin || p == constant.PermissionProblemListAll {
 			showAll = true
+			break
 		}
 
 		if p == constant.PermissionProblemListCreatedOwn {
@@ -76,6 +78,7 @@ func (q *QueryHandler) Handle(ctx context.Context) (*Response, error) {
 		showCreated,
 		showAllPendingReview,
 		showAssignedTesting,
+		onlyShowCompleted,
 	)
 	if err != nil {
 		return nil, err

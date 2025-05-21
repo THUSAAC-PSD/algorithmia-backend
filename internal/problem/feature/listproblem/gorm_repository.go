@@ -3,6 +3,8 @@ package listproblem
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
@@ -60,6 +62,7 @@ func (r *GormRepository) GetAllRelatedProblems(
 	showCreated bool,
 	showAllPendingReview bool,
 	showAssignedTesting bool,
+	onlyShowCompleted bool,
 ) ([]ResponseProblem, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 
@@ -71,6 +74,7 @@ func (r *GormRepository) GetAllRelatedProblems(
 		showCreated,
 		showAllPendingReview,
 		showAssignedTesting,
+		onlyShowCompleted,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch related problems")
@@ -178,6 +182,7 @@ func (r *GormRepository) fetchRelatedProblems(
 	showCreated bool,
 	showAllPendingReview bool,
 	showAssignedTesting bool,
+	onlyShowCompleted bool,
 ) ([]flatProblemData, error) {
 	var problems []flatProblemData
 	query := db.WithContext(ctx).
@@ -218,24 +223,48 @@ func (r *GormRepository) fetchRelatedProblems(
             assigned_c.title as assigned_contest_title,
 			rpv.problem_version_id as latest_version_id,
             rpv.problem_difficulty_id as latest_version_difficulty_id 
-        `).
-		Where("reviewer_id = ?", userID)
+        `)
+
+	conditions := make([]string, 0)
+	args := make([]interface{}, 0)
+
+	conditions = append(conditions, "reviewer_id = ?")
+	args = append(args, userID)
+
+	fmt.Printf(
+		"showAll: %v showCreated: %v showAllPendingReview: %v showAssignedTesting: %v\n",
+		showAll,
+		showCreated,
+		showAllPendingReview,
+		showAssignedTesting,
+	)
 
 	if showAll {
-		query = query.Or("0 = 0")
+		conditions = append(conditions, "0 = 0")
 	} else {
 		if showCreated {
-			query = query.Or("creator_id = ?", userID)
+			conditions = append(conditions, "creator_id = ?")
+			args = append(args, userID)
 		}
 
 		if showAllPendingReview {
-			query = query.Or("status = ?", constant.ProblemStatusPendingReview)
+			conditions = append(conditions, "status = ?")
+			args = append(args, constant.ProblemStatusPendingReview)
 		}
 
 		if showAssignedTesting {
-			query = query.Or("pr.user_user_id = ?", userID)
+			conditions = append(conditions, "pr.user_user_id = ?")
+			args = append(args, userID)
 		}
 	}
+
+	whereClause := strings.Join(conditions, " OR ")
+	if onlyShowCompleted {
+		whereClause = "(" + whereClause + ") AND status = ?"
+		args = append(args, constant.ProblemStatusCompleted)
+	}
+
+	query = query.Where(whereClause, args...)
 
 	if err := query.Scan(&problems).Error; err != nil {
 		return nil, errors.Wrap(err, "failed to get all related problems")
