@@ -18,6 +18,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/submitproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/listtester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
@@ -114,6 +115,10 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(deleteproblemdraft.NewCommandHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide delete problem draft command handler")
+	}
+
+	if err := a.Container.Provide(listtester.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list tester query handler")
 	}
 
 	return nil

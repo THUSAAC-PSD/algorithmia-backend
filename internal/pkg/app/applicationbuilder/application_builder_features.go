@@ -26,6 +26,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft/feature/upsertproblemdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/getcurrentuser"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/listtester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
@@ -180,6 +181,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide list message endpoint")
 	}
 
+	if err := b.Container.Provide(listtester.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list tester endpoint")
+	}
+
 	if err := b.Container.Provide(func(
 		websocketEndpoint *websocket.Endpoint,
 		registerEndpoint *register.Endpoint,
@@ -203,6 +208,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		getProblemEndpoint *getproblem.Endpoint,
 		sendMessageEndpoint *sendmessage.Endpoint,
 		listMessageEndpoint *listmessage.Endpoint,
+		listTesterEndpoint *listtester.Endpoint,
 	) []contract.Endpoint {
 		return []contract.Endpoint{
 			websocketEndpoint,
@@ -227,6 +233,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			getProblemEndpoint,
 			sendMessageEndpoint,
 			listMessageEndpoint,
+			listTesterEndpoint,
 		}
 	}); err != nil {
 		return errors.WrapIf(err, "failed to provide endpoint array")
@@ -326,6 +333,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(deleteproblemdraft.NewGormRepository,
 		dig.As(new(deleteproblemdraft.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide delete problem draft repository")
+	}
+
+	if err := b.Container.Provide(listtester.NewGormRepository,
+		dig.As(new(listtester.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide list tester repository")
 	}
 
 	return nil
