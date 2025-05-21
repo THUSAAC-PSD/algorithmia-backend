@@ -32,8 +32,8 @@ func (r *GormRepository) GetTesters(ctx context.Context) ([]ResponseTester, erro
 		Joins("LEFT JOIN role_permissions rp ON rp.role_role_id = ur.role_role_id").
 		Joins("LEFT JOIN permissions p ON p.permission_id = rp.permission_permission_id").
 		Where("p.name IN ?", []string{
-			constant.PermissionProblemReviewAny,
-			constant.PermissionProblemReviewOverride,
+			constant.PermissionProblemTestAssigned,
+			constant.PermissionProblemTestOverride,
 		}).Or("r.is_super_admin = ?", true).
 		Find(&users).Error; err != nil {
 		return nil, errors.WrapIf(err, "failed to get users")

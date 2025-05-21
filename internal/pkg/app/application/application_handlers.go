@@ -1,9 +1,11 @@
 package application
 
 import (
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/assignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/unassignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/getproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
@@ -119,6 +121,14 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(listtester.NewQueryHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide list tester query handler")
+	}
+
+	if err := a.Container.Provide(assignproblem.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide assign problem command handler")
+	}
+
+	if err := a.Container.Provide(unassignproblem.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide unassign problem command handler")
 	}
 
 	return nil

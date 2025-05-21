@@ -2,9 +2,11 @@ package applicationbuilder
 
 import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/assignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/unassignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
@@ -185,6 +187,14 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide list tester endpoint")
 	}
 
+	if err := b.Container.Provide(assignproblem.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide assign problem endpoint")
+	}
+
+	if err := b.Container.Provide(unassignproblem.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide unassign problem endpoint")
+	}
+
 	if err := b.Container.Provide(func(
 		websocketEndpoint *websocket.Endpoint,
 		registerEndpoint *register.Endpoint,
@@ -209,6 +219,8 @@ func (b *ApplicationBuilder) addRoutes() error {
 		sendMessageEndpoint *sendmessage.Endpoint,
 		listMessageEndpoint *listmessage.Endpoint,
 		listTesterEndpoint *listtester.Endpoint,
+		assignProblemEndpoint *assignproblem.Endpoint,
+		unassignProblemEndpoint *unassignproblem.Endpoint,
 	) []contract.Endpoint {
 		return []contract.Endpoint{
 			websocketEndpoint,
@@ -234,6 +246,8 @@ func (b *ApplicationBuilder) addRoutes() error {
 			sendMessageEndpoint,
 			listMessageEndpoint,
 			listTesterEndpoint,
+			assignProblemEndpoint,
+			unassignProblemEndpoint,
 		}
 	}); err != nil {
 		return errors.WrapIf(err, "failed to provide endpoint array")
@@ -338,6 +352,16 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(listtester.NewGormRepository,
 		dig.As(new(listtester.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide list tester repository")
+	}
+
+	if err := b.Container.Provide(assignproblem.NewGormRepository,
+		dig.As(new(assignproblem.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide assign problem repository")
+	}
+
+	if err := b.Container.Provide(unassignproblem.NewGormRepository,
+		dig.As(new(unassignproblem.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide unassign problem repository")
 	}
 
 	return nil

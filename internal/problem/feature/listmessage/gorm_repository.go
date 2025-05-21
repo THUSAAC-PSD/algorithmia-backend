@@ -29,13 +29,17 @@ func (r *GormRepository) IsUserPartOfRoom(ctx context.Context, problemID uuid.UU
 	if err := db.WithContext(ctx).
 		Model(&database.Problem{}).
 		Preload("Testers").
-		Where("problem_id = ? AND (creator_id = ? OR reviewer_id = ?)", problemID, userID, userID).
+		Where("problem_id = ?", problemID).
 		First(&p).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
 		}
 
 		return false, errors.WrapIf(err, "failed to check if user is part of room")
+	}
+
+	if p.CreatorID == userID || p.ReviewerID.UUID == userID {
+		return true, nil
 	}
 
 	if len(p.Testers) > 0 {

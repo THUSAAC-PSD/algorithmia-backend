@@ -40,6 +40,10 @@ func (r *GormRepository) GetProblem(
 		}).
 		Preload("ProblemVersions.Details").
 		Preload("ProblemVersions.Examples").
+		Preload("ProblemVersions.Review").
+		Preload("ProblemVersions.Review.Reviewer").
+		Preload("ProblemVersions.TestResult").
+		Preload("ProblemVersions.TestResult.Tester").
 		Preload("ProblemVersions.ProblemDifficulty").
 		Preload("ProblemVersions.ProblemDifficulty.DisplayNames").
 		Preload("TargetContest").
@@ -74,6 +78,24 @@ func (r *GormRepository) GetProblem(
 			Details:           make([]ResponseProblemDetail, 0, len(version.Details)),
 			Examples:          make([]ResponseProblemExample, 0, len(version.Examples)),
 			CreatedAt:         version.CreatedAt,
+		}
+
+		if version.Review != nil {
+			v.Review = &ResponseReview{
+				ReviewerID: version.Review.Reviewer.UserID,
+				Comment:    version.Review.Comment,
+				Decision:   version.Review.Decision,
+				CreatedAt:  version.Review.CreatedAt,
+			}
+		}
+
+		if version.TestResult != nil {
+			v.TestResult = &ResponseTestResult{
+				TesterID:  version.TestResult.Tester.UserID,
+				Comment:   version.TestResult.Comment,
+				Status:    version.TestResult.Status,
+				CreatedAt: version.TestResult.CreatedAt,
+			}
 		}
 
 		for _, detail := range version.Details {

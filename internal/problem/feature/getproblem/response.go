@@ -39,11 +39,27 @@ type ResponseProblemExample struct {
 	Output string `json:"output"`
 }
 
+type ResponseReview struct {
+	ReviewerID uuid.UUID `json:"reviewer_id"`
+	Comment    string    `json:"comment"`
+	Decision   string    `json:"decision"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type ResponseTestResult struct {
+	TesterID  uuid.UUID `json:"tester_id"`
+	Status    string    `json:"status"`
+	Comment   string    `json:"comment"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type ResponseProblemVersion struct {
 	VersionID         uuid.UUID                `json:"version_id"`
 	ProblemDifficulty dto.ProblemDifficulty    `json:"problem_difficulty"`
 	Details           []ResponseProblemDetail  `json:"details"`
 	Examples          []ResponseProblemExample `json:"examples"`
+	Review            *ResponseReview          `json:"review"`
+	TestResult        *ResponseTestResult      `json:"test_result"`
 	CreatedAt         time.Time                `json:"created_at"`
 }
 
