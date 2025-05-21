@@ -25,16 +25,30 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 func (r *GormRepository) IsUserPartOfRoom(ctx context.Context, problemID uuid.UUID, userID uuid.UUID) (bool, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 
-	var count int64
+	var p database.Problem
 	if err := db.WithContext(ctx).
 		Model(&database.Problem{}).
-		Joins("INNER JOIN problem_testers ON problem_testers.problem_problem_id = problems.problem_id AND user_user_id = ?", userID).
+		Preload("Testers").
 		Where("problem_id = ? AND (creator_id = ? OR reviewer_id = ?)", problemID, userID, userID).
-		Count(&count).Error; err != nil {
+		First(&p).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+
 		return false, errors.WrapIf(err, "failed to check if user is part of room")
 	}
 
-	return count > 0, nil
+	if len(p.Testers) > 0 {
+		for _, tester := range p.Testers {
+			if tester.UserID == userID {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (r *GormRepository) GetUserChatMessages(ctx context.Context, problemID uuid.UUID) ([]ResponseChatMessage, error) {

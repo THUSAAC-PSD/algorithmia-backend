@@ -9,6 +9,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/getproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
@@ -162,6 +163,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide list problem endpoint")
 	}
 
+	if err := b.Container.Provide(getproblem.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide get problem endpoint")
+	}
+
 	if err := b.Container.Provide(sendmessage.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide send message endpoint")
 	}
@@ -189,6 +194,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		assignTesterEndpoint *assigntesters.Endpoint,
 		markCompleteEndpoint *markcomplete.Endpoint,
 		listProblemEndpoint *listproblem.Endpoint,
+		getProblemEndpoint *getproblem.Endpoint,
 		sendMessageEndpoint *sendmessage.Endpoint,
 		listMessageEndpoint *listmessage.Endpoint,
 	) []contract.Endpoint {
@@ -211,6 +217,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			assignTesterEndpoint,
 			markCompleteEndpoint,
 			listProblemEndpoint,
+			getProblemEndpoint,
 			sendMessageEndpoint,
 			listMessageEndpoint,
 		}
@@ -302,6 +309,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(listmessage.NewGormRepository,
 		dig.As(new(listmessage.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide list message repository")
+	}
+
+	if err := b.Container.Provide(getproblem.NewGormRepository,
+		dig.As(new(getproblem.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide get problem repository")
 	}
 
 	return nil

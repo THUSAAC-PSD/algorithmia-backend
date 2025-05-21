@@ -21,7 +21,7 @@ type ResponseUser struct {
 
 type ResponseContest struct {
 	ContestID uuid.UUID `json:"contest_id"`
-	Name      string    `json:"name"`
+	Title     string    `json:"title"`
 }
 
 type ResponseProblem struct {

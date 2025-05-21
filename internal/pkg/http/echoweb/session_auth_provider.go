@@ -36,6 +36,21 @@ func (s *SessionAuthProvider) GetUser(ctx context.Context) (*contract.AuthUser, 
 	return &user, nil
 }
 
+func (s *SessionAuthProvider) Can(ctx context.Context, permissionName string) (bool, error) {
+	user, err := s.MustGetUser(ctx)
+	if err != nil {
+		return false, errors.WrapIf(err, "failed to get user")
+	}
+
+	for _, p := range user.Permissions {
+		if p == permissionName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (s *SessionAuthProvider) MustGetUser(ctx context.Context) (contract.AuthUser, error) {
 	user, err := s.GetUser(ctx)
 	if err != nil {

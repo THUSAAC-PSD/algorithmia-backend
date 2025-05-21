@@ -36,14 +36,16 @@ func (m *HTTPSessionManager) SetUser(ctx context.Context, user login.User) error
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 	}
 
 	sess.Values[echoweb.SessionUserKey] = contract.AuthUser{
-		UserID:   user.UserID,
-		Username: user.Username,
-		Email:    user.Email,
-		Roles:    user.Roles,
+		UserID:       user.UserID,
+		Username:     user.Username,
+		Email:        user.Email,
+		IsSuperAdmin: user.IsSuperAdmin,
+		Roles:        user.Roles,
+		Permissions:  user.Permissions,
 	}
 
 	if err := sess.Save(eCtx.Request(), eCtx.Response()); err != nil {

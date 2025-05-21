@@ -74,11 +74,11 @@ func (r *GormRepository) GetAllRelatedProblems(
 	}
 
 	testerByProblemID := make(map[uuid.UUID][]ResponseUser)
-	for _, pt := range problemTesters {
-		if _, ok := testerByProblemID[pt.ProblemID]; !ok {
-			testerByProblemID[pt.ProblemID] = make([]ResponseUser, 0)
-		}
+	for _, p := range flatProblems {
+		testerByProblemID[p.ProblemID] = make([]ResponseUser, 0)
+	}
 
+	for _, pt := range problemTesters {
 		testerByProblemID[pt.ProblemID] = append(testerByProblemID[pt.ProblemID], ResponseUser{
 			UserID:   pt.TesterID,
 			Username: pt.TesterName,
@@ -133,14 +133,14 @@ func (r *GormRepository) GetAllRelatedProblems(
 		if problem.TargetContestID.Valid && problem.TargetContestTitle.Valid {
 			p.TargetContest = &ResponseContest{
 				ContestID: problem.TargetContestID.UUID,
-				Name:      problem.TargetContestTitle.String,
+				Title:     problem.TargetContestTitle.String,
 			}
 		}
 
 		if problem.AssignedContestID.Valid && problem.AssignedContestTitle.Valid {
 			p.AssignedContest = &ResponseContest{
 				ContestID: problem.AssignedContestID.UUID,
-				Name:      problem.AssignedContestTitle.String,
+				Title:     problem.AssignedContestTitle.String,
 			}
 		}
 

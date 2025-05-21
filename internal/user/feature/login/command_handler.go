@@ -2,6 +2,7 @@ package login
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract/uowhelper"
@@ -76,6 +77,8 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 			_, _ = h.passwordChecker.Check(someHashedPassword, command.Password)
 			return errors.WithStack(ErrInvalidCredentials)
 		}
+
+		fmt.Printf("%+v\n", user)
 
 		ok, err := h.passwordChecker.Check(user.HashedPassword, command.Password)
 		if err != nil {

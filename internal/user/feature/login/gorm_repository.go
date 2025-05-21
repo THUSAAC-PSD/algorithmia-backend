@@ -21,7 +21,11 @@ func (r *GormRepository) GetUserByUsername(ctx context.Context, username string)
 	db := database.GetDBFromContext(ctx, r.db)
 
 	var user database.User
-	if err := db.WithContext(ctx).Preload("Roles").Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.WithContext(ctx).
+		Preload("Roles").
+		Preload("Roles.Permissions").
+		Where("username = ?", username).
+		First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // User not found
 		}
@@ -30,8 +34,32 @@ func (r *GormRepository) GetUserByUsername(ctx context.Context, username string)
 	}
 
 	roles := make([]string, 0, len(user.Roles))
+	permissionCount := 0
+	isSuperAdmin := false
+
 	for _, role := range user.Roles {
-		roles = append(roles, role.RoleType)
+		roles = append(roles, role.Name)
+		if role.Permissions != nil {
+			permissionCount += len(*role.Permissions)
+		}
+
+		if role.IsSuperAdmin {
+			isSuperAdmin = true
+		}
+	}
+
+	uniquePermissions := make(map[string]struct{})
+	for _, role := range user.Roles {
+		if role.Permissions != nil {
+			for _, permission := range *role.Permissions {
+				uniquePermissions[permission.Name] = struct{}{}
+			}
+		}
+	}
+
+	permissions := make([]string, 0, len(uniquePermissions))
+	for permission := range uniquePermissions {
+		permissions = append(permissions, permission)
 	}
 
 	return &User{
@@ -39,6 +67,8 @@ func (r *GormRepository) GetUserByUsername(ctx context.Context, username string)
 		Username:       user.Username,
 		HashedPassword: user.HashedPassword,
 		Email:          user.Email,
+		IsSuperAdmin:   isSuperAdmin,
 		Roles:          roles,
+		Permissions:    permissions,
 	}, nil
 }

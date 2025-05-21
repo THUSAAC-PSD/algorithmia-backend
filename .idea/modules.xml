@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/algorithmia-backend.iml" filepath="$PROJECT_DIR$/.idea/go-vertical-slice-template.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/algorithmia-backend.iml" filepath="$PROJECT_DIR$/.idea/algorithmia-backend.iml" />
     </modules>
   </component>
 </project>

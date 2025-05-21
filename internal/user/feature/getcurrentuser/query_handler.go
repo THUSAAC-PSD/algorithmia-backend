@@ -28,10 +28,12 @@ func (h *QueryHandler) Handle(
 
 	return &Response{
 		User: ResponseUser{
-			UserID:   user.UserID,
-			Username: user.Username,
-			Email:    user.Email,
-			Roles:    user.Roles,
+			UserID:       user.UserID,
+			Username:     user.Username,
+			Email:        user.Email,
+			IsSuperAdmin: user.IsSuperAdmin,
+			Roles:        user.Roles,
+			Permissions:  user.Permissions,
 		},
 	}, nil
 }

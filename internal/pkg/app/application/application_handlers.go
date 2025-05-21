@@ -5,6 +5,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/getproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/markcomplete"
@@ -88,6 +89,10 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(listproblem.NewQueryHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide list problem query handler")
+	}
+
+	if err := a.Container.Provide(getproblem.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide get problem query handler")
 	}
 
 	if err := a.Container.Provide(markcomplete.NewCommandHandler); err != nil {
