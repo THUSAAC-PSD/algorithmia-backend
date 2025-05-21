@@ -7,7 +7,4 @@ type User struct {
 	Username       string
 	HashedPassword string
 	Email          string
-	IsSuperAdmin   bool
-	Roles          []string
-	Permissions    []string
 }

@@ -37,7 +37,7 @@ func (e *Endpoint) handle() websocket.Handler {
 		}
 
 		if err := e.validator.StructCtx(ctx, command); err != nil {
-			sendError("Failed to validate command", websocket.ErrCodeInvalidPayload)
+			sendError("Failed to validate command: "+err.Error(), websocket.ErrCodeInvalidPayload)
 			return
 		}
 

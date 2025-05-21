@@ -26,14 +26,19 @@ func (h *QueryHandler) Handle(
 		return nil, errors.WrapIf(err, "failed to get user from auth provider")
 	}
 
+	details, err := h.authProvider.MustGetUserDetails(ctx, user.UserID)
+	if err != nil {
+		return nil, errors.WrapIf(err, "failed to get user details")
+	}
+
 	return &Response{
 		User: ResponseUser{
 			UserID:       user.UserID,
-			Username:     user.Username,
+			Username:     details.Username,
 			Email:        user.Email,
-			IsSuperAdmin: user.IsSuperAdmin,
-			Roles:        user.Roles,
-			Permissions:  user.Permissions,
+			IsSuperAdmin: details.IsSuperAdmin,
+			Roles:        details.Roles,
+			Permissions:  details.Permissions,
 		},
 	}, nil
 }

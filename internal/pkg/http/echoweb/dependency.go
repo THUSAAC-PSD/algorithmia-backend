@@ -2,6 +2,7 @@ package echoweb
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
@@ -51,6 +52,13 @@ func AddEcho(container *dig.Container) error {
 		e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(30)))
 		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 			Level: constant.GzipLevel,
+			Skipper: func(c echo.Context) bool {
+				if strings.Contains(c.Request().URL.Path, "ws/chat") &&
+					c.Request().Header.Get("Upgrade") == "websocket" {
+					return true
+				}
+				return false
+			},
 		}))
 
 		store := gormstore.New(db, []byte(opts.SessionSecret))

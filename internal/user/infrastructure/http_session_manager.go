@@ -40,12 +40,8 @@ func (m *HTTPSessionManager) SetUser(ctx context.Context, user login.User) error
 	}
 
 	sess.Values[echoweb.SessionUserKey] = contract.AuthUser{
-		UserID:       user.UserID,
-		Username:     user.Username,
-		Email:        user.Email,
-		IsSuperAdmin: user.IsSuperAdmin,
-		Roles:        user.Roles,
-		Permissions:  user.Permissions,
+		UserID: user.UserID,
+		Email:  user.Email,
 	}
 
 	if err := sess.Save(eCtx.Request(), eCtx.Response()); err != nil {

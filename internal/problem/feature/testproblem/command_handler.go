@@ -113,9 +113,14 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to update problem status")
 		}
 
+		details, err := h.authProvider.MustGetUserDetails(ctx, user.UserID)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to get user details")
+		}
+
 		if err := h.broadcaster.BroadcastTestedMessage(command.ProblemID, contract.MessageUser{
 			UserID:   user.UserID,
-			Username: user.Username,
+			Username: details.Username,
 		}, string(command.Status), timestamp); err != nil {
 			return nil, errors.WrapIf(err, "failed to broadcast reviewed message")
 		}

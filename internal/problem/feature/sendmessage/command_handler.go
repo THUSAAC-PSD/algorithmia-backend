@@ -86,9 +86,14 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 			return errors.WrapIf(err, "failed to get attachments")
 		}
 
+		details, err := h.authProvider.MustGetUserDetails(ctx, user.UserID)
+		if err != nil {
+			return errors.WrapIf(err, "failed to get user details")
+		}
+
 		if err := h.broadcaster.BroadcastUserMessage(command.ProblemID, messageID, command.Content, contract.MessageUser{
 			UserID:   user.UserID,
-			Username: user.Username,
+			Username: details.Username,
 		}, attachments, timestamp); err != nil {
 			return errors.WrapIf(err, "failed to broadcast message")
 		}

@@ -7,8 +7,11 @@ import (
 )
 
 type AuthUser struct {
-	UserID       uuid.UUID
-	Email        string
+	UserID uuid.UUID
+	Email  string
+}
+
+type AuthUserDetails struct {
 	Username     string
 	IsSuperAdmin bool
 	Roles        []string
@@ -17,7 +20,9 @@ type AuthUser struct {
 
 type AuthProvider interface {
 	GetUser(ctx context.Context) (*AuthUser, error)
+
 	Can(ctx context.Context, permissionName string) (bool, error)
 
 	MustGetUser(ctx context.Context) (AuthUser, error)
+	MustGetUserDetails(ctx context.Context, userID uuid.UUID) (*AuthUserDetails, error)
 }

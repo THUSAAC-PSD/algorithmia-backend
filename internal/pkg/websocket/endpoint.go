@@ -56,9 +56,9 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusUnauthorized, "Authentication required for WebSocket").WithInternal(err)
 		}
 
+		// TODO: security
 		conn, err := websocket.Accept(ctx.Response().Writer, ctx.Request(), &websocket.AcceptOptions{
-			InsecureSkipVerify: true,                    // DEV ONLY: if no TLS. DO NOT USE IN PROD.
-			OriginPatterns:     []string{"localhost:*"}, // IMPORTANT for security
+			InsecureSkipVerify: true, // DEV ONLY: if no TLS. DO NOT USE IN PROD.
 		})
 		if err != nil {
 			e.Logger.Errorw("WebSocket upgrade failed", map[string]interface{}{

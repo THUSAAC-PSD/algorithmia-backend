@@ -134,9 +134,14 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to create problem version from draft")
 		}
 
+		details, err := h.authProvider.MustGetUserDetails(ctx, user.UserID)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to get user details")
+		}
+
 		if err := h.broadcaster.BroadcastSubmittedMessage(problemID, contract.MessageUser{
 			UserID:   user.UserID,
-			Username: user.Username,
+			Username: details.Username,
 		}, timestamp); err != nil {
 			return nil, errors.WrapIf(err, "failed to broadcast submitted message")
 		}
