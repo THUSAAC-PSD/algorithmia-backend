@@ -76,8 +76,8 @@ Algorithmia Backend is the server-side application for the Algorithmia platform,
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/THUSAAC-PSD/algorithmia-backend-main.git
-cd algorithmia-backend-main
+git clone https://github.com/THUSAAC-PSD/algorithmia-backend.git
+cd algorithmia-backend
 ```
 
 ### Install Tools
@@ -130,13 +130,13 @@ Configuration files are located in the `config/` directory.
 
 #### The .env file
 
-1.  **Create a `.env` file** in the project root directory (e.g., `algorithmia-backend-main/.env`).
+1.  **Create a `.env` file** in the project root directory (e.g., `algorithmia-backend/.env`).
 2.  **Add your environment variables.** For example:
 
     ```env
     # .env
     APP_ENV=development # Application Environment (development, test, production). This determines which config file to use (config.*.json)
-    PROJECT_NAME=algorithmia-backend-main # Ensure this matches the root folder name
+    PROJECT_NAME=algorithmia-backend # Ensure this matches the root folder name
     ```
 
 ### Running the Application
@@ -187,7 +187,7 @@ A `taskfile.yml` is also provided with similar commands that can be run using `t
 The project follows a modular structure, primarily within the `internal/` directory. This structure is designed to separate concerns and promote maintainability.
 
 ```
-algorithmia-backend-main/
+algorithmia-backend/
 ├── Makefile                  # Main build and task runner
 ├── README.md                 # This file
 ├── cmd/
