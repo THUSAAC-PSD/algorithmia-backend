@@ -14,13 +14,6 @@ build:
 install-dependencies:
 	@./scripts/install-dependencies.sh 
 
-.PHONY: docker-compose-infra-up
-docker-compose-infra-up:
-	@docker-compose -f deployments/docker-compose/docker-compose.infrastructure.yaml up --build -d
-
-docker-compose-infra-down:
-	@docker-compose -f deployments/docker-compose/docker-compose.infrastructure.yaml down
-
 # .PHONY: integration-test
 # integration-test:
 # 	@./scripts/test.sh integration

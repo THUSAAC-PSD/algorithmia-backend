@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  web_api:
+    build: .
+    container_name: algorithmia_web_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - algorithmia-backend
+
+  postgres:
+    image: postgres:latest
+    container_name: algorithmia_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - algorithmia-backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  algorithmia-backend:
+    name: algorithmia-backend
+
+volumes:
+  postgres-data:

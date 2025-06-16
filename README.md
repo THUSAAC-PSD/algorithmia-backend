@@ -141,29 +141,22 @@ Configuration files are located in the `config/` directory.
 
 ### Running the Application
 
-1.  **Start Infrastructure (PostgreSQL):**
-    The project uses Docker Compose to manage the PostgreSQL database.
-    ```bash
-    make docker-compose-infra-up
-    # or
-    task docker-compose-infra-up
-    ```
-    This will start a PostgreSQL container. The database will be created on the first run if it doesn't exist. It will use environment variables (e.g., from your `.env` file or system environment) for `POSTGRES_USER` and `POSTGRES_PASSWORD` if set, otherwise it defaults to `postgres`.
+The recommended way to run the application is with Docker Compose, which manages both the Go application container and the PostgreSQL database container.
 
-2.  **Run the Application:**
+1.  **Build and Run with Docker Compose:**
+    Ensure Docker is running, then execute the following command from the project root:
     ```bash
-    make run-app
-    # or
-    task run-app
+    docker-compose up --build -d
     ```
-    This will execute `./scripts/run.sh` which runs `go run cmd/app/main.go`. The application will connect to the PostgreSQL instance, perform database migrations, seed initial data (like problem difficulties and roles/permissions), and start the HTTP server (defaulting to port 9090 as per `config.development.json`).
+    * `--build`: This flag tells Docker Compose to build the application image from the `Dockerfile` before starting the services.
+    * `-d`: This runs the containers in detached mode (in the background).
 
-3.  **Stopping Infrastructure:**
-    To stop the PostgreSQL container:
+    The application will now be running. The Go app's port (e.g., 9090) will be mapped to the same port on your host machine, ready to receive requests from a reverse proxy like Nginx.
+
+2.  **Stopping the Application:**
+    To stop both the application and the database containers:
     ```bash
-    make docker-compose-infra-down
-    # or
-    task docker-compose-infra-down
+    docker-compose down
     ```
 
 ## Makefile Targets
@@ -174,8 +167,6 @@ The `Makefile` provides several useful targets for development:
 *   `run-app`: Runs the application locally.
 *   `build`: Builds the application binary.
 *   `install-dependencies`: Installs Go module dependencies.
-*   `docker-compose-infra-up`: Starts the PostgreSQL Docker container.
-*   `docker-compose-infra-down`: Stops the PostgreSQL Docker container.
 *   `format`: Formats the Go codebase.
 *   `lint`: Runs linters (`golangci-lint`, `revive`, `staticcheck`).
 *   `update-dependencies`: Updates Go dependencies.
@@ -189,6 +180,8 @@ The project follows a modular structure, primarily within the `internal/` direct
 ```
 algorithmia-backend/
 ├── Makefile                  # Main build and task runner
+├── Dockerfile                # Instructions to build the application container
+├── docker-compose.yml        # Defines and runs the multi-container setup
 ├── README.md                 # This file
 ├── cmd/
 │   └── app/
