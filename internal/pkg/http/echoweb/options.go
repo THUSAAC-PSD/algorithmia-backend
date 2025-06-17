@@ -3,8 +3,6 @@ package echoweb
 import (
 	"fmt"
 	"net/url"
-
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config"
 )
 
 type Options struct {
@@ -29,8 +27,4 @@ func (c *Options) BasePathAddress() string {
 		return ""
 	}
 	return path
-}
-
-func ProvideConfig() (*Options, error) {
-	return config.BindConfigKey[*Options]("echoHttpOptions")
 }

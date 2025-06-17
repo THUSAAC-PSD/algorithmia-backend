@@ -2,97 +2,70 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/environment"
-	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/reflection/typemapper"
+	"strings"
 
 	"emperror.dev/errors"
-	"github.com/caarlos0/env/v8"
-	"github.com/mcuadros/go-defaults"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
-func BindConfig[T any](environments ...environment.Environment) (T, error) {
-	return BindConfigKey[T]("", environments...)
-}
-
-func BindConfigKey[T any](configKey string, environments ...environment.Environment) (T, error) {
-	var configPath string
-
-	e := environment.Environment("")
-	if len(environments) > 0 {
-		e = environments[0]
-	} else {
-		e = constant.Dev
-	}
-
-	// https://articles.wesionary.team/environment-variable-configuration-in-your-golang-project-using-viper-4e8289ef664d
-	configPathFromEnv := viper.Get(constant.ConfigPath)
-	if configPathFromEnv != nil {
-		configPath = configPathFromEnv.(string)
-	} else {
-		// https://stackoverflow.com/questions/31873396/is-it-possible-to-get-the-current-root-of-package-structure-as-a-string-in-golan
-		// https://stackoverflow.com/questions/18537257/how-to-get-the-directory-of-the-currently-running-file
-		d, err := getConfigRootPath()
-		if err != nil {
-			return *new(T), err
-		}
-
-		configPath = d
-	}
-
-	cfg := typemapper.GenericInstanceByT[T]()
-
-	// https://github.com/spf13/viper/issues/390#issuecomment-718756752
-	viper.SetConfigName(fmt.Sprintf("config.%s", e))
-	viper.AddConfigPath(configPath)
-	viper.SetConfigType(constant.JSON)
-
-	if err := viper.ReadInConfig(); err != nil {
-		return *new(T), errors.WrapIf(err, "failed to read config file")
-	}
-
-	if len(configKey) == 0 {
-		if err := viper.Unmarshal(cfg); err != nil {
-			return *new(T), errors.WrapIf(err, "failed to unmarshal config")
-		}
-	} else {
-		if err := viper.UnmarshalKey(configKey, cfg); err != nil {
-			return *new(T), errors.WrapIf(err, "failed to unmarshal config")
-		}
+func BindAllConfigs() (*Config, error) {
+	if err := godotenv.Load(".env"); err != nil {
+		// Log the error but do not return it, as .env file is optional
+		fmt.Printf("Error loading .env file: %v\n", err)
 	}
 
 	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// https://github.com/caarlos0/env
-	if err := env.Parse(cfg); err != nil {
-		fmt.Printf("%+v\n", err)
+	// LoggerOptions
+	_ = viper.BindEnv("loggerOptions.level", "LOG_LEVEL")
+	_ = viper.BindEnv("loggerOptions.callerEnabled", "LOG_CALLER_ENABLED")
+
+	// GormOptions
+	_ = viper.BindEnv("gormOptions.host", "DB_HOST")
+	_ = viper.BindEnv("gormOptions.port", "DB_PORT")
+	_ = viper.BindEnv("gormOptions.user", "DB_USER")
+	_ = viper.BindEnv("gormOptions.password", "DB_PASSWORD")
+	_ = viper.BindEnv("gormOptions.dbName", "DB_NAME")
+	_ = viper.BindEnv("gormOptions.sslMode", "DB_SSL_MODE")
+	_ = viper.BindEnv("gormOptions.useInMemory", "DB_USE_IN_MEMORY")
+	_ = viper.BindEnv("gormOptions.useSqlLite", "DB_USE_SQLITE")
+
+	// EchoHttpOptions
+	_ = viper.BindEnv("echoHttpOptions.port", "PORT")
+	_ = viper.BindEnv("echoHttpOptions.development", "DEVELOPMENT")
+	_ = viper.BindEnv("echoHttpOptions.basePath", "BASE_PATH")
+	_ = viper.BindEnv("echoHttpOptions.debugErrorsResponse", "DEBUG_ERRORS_RESPONSE")
+	_ = viper.BindEnv("echoHttpOptions.ignoreLogUrls", "IGNORE_LOG_URLS")
+	_ = viper.BindEnv("echoHttpOptions.timeout", "HTTP_TIMEOUT")
+	_ = viper.BindEnv("echoHttpOptions.host", "HTTP_HOST")
+	_ = viper.BindEnv("echoHttpOptions.name", "APP_NAME")
+	_ = viper.BindEnv("echoHttpOptions.sessionSecret", "SESSION_SECRET")
+
+	// GomailOptions
+	_ = viper.BindEnv("gomailOptions.host", "MAIL_HOST")
+	_ = viper.BindEnv("gomailOptions.port", "MAIL_PORT")
+	_ = viper.BindEnv("gomailOptions.username", "MAIL_USERNAME")
+	_ = viper.BindEnv("gomailOptions.password", "MAIL_PASSWORD")
+	_ = viper.BindEnv("gomailOptions.sender", "MAIL_SENDER")
+
+	// WebsocketOptions
+	_ = viper.BindEnv("websocketOptions.skipTLSVerification", "WS_SKIP_TLS_VERIFICATION")
+	_ = viper.BindEnv("websocketOptions.originPatterns", "WS_ORIGIN_PATTERNS")
+
+	cfg := &Config{}
+	if err := viper.Unmarshal(cfg); err != nil {
+		return nil, errors.WrapIf(err, "failed to unmarshal config")
 	}
 
-	// https://github.com/mcuadros/go-defaults
-	defaults.SetDefaults(cfg)
+	if cfg.GormOptions.DBName == "" {
+		return nil, errors.New("DB_NAME environment variable is required and was not found")
+	}
+
+	if cfg.EchoHttpOptions.SessionSecret == "" {
+		return nil, errors.New("SESSION_SECRET environment variable is required and was not found")
+	}
 
 	return cfg, nil
-}
-
-func getConfigRootPath() (string, error) {
-	// Getwd gives us the current working directory that we are running our app with `go run` command. in goland we can specify this working directory for the project
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("Current working directory is: %s\n", wd)
-
-	// Get the absolute path of the executed project directory
-	absCurrentDir, err := filepath.Abs(wd)
-	if err != nil {
-		return "", err
-	}
-
-	configPath := filepath.Join(absCurrentDir, "config")
-	return configPath, nil
 }

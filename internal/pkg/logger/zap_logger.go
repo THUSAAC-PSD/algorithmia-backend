@@ -38,7 +38,7 @@ var loggerLevelMap = map[string]zapcore.Level{
 
 func NewZapLogger(
 	cfg *Options,
-	env environment.Environment,
+	env *environment.Environment,
 ) Logger {
 	zapLogger := &zapLogger{level: cfg.LogLevel, logOptions: cfg}
 	zapLogger.initLogger(env)
@@ -63,7 +63,7 @@ func (l *zapLogger) getLoggerLevel() zapcore.Level {
 	return level
 }
 
-func (l *zapLogger) initLogger(env environment.Environment) {
+func (l *zapLogger) initLogger(env *environment.Environment) {
 	logLevel := l.getLoggerLevel()
 
 	logWriter := zapcore.AddSync(os.Stdout)

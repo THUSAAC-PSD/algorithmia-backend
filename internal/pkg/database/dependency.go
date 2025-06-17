@@ -8,10 +8,6 @@ import (
 )
 
 func AddGorm(container *dig.Container) error {
-	if err := container.Provide(ProvideConfig); err != nil {
-		return errors.WrapIf(err, "failed to provide gorm options")
-	}
-
 	if err := container.Provide(NewGorm); err != nil {
 		return errors.WrapIf(err, "failed to provide gorm db")
 	}

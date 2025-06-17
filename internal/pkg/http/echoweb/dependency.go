@@ -23,10 +23,6 @@ import (
 )
 
 func AddEcho(container *dig.Container) error {
-	if err := container.Provide(ProvideConfig); err != nil {
-		return errors.WrapIf(err, "failed to provide echo options")
-	}
-
 	if err := container.Provide(NewSessionAuthProvider,
 		dig.As(new(contract.AuthProvider))); err != nil {
 		return errors.WrapIf(err, "failed to provide session auth provider")
