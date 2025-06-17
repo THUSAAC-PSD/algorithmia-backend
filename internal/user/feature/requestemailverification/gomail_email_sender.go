@@ -4,7 +4,6 @@ import (
 	"context"
 	"html/template"
 	"path/filepath"
-	"runtime"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/mailing"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/constant"
@@ -19,13 +18,7 @@ type GomailEmailSender struct {
 }
 
 func NewGomailEmailSender(opts *mailing.Options) (*GomailEmailSender, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return nil, errors.New("failed to get caller information")
-	}
-
-	dirname := filepath.Dir(filename)
-	tmplFileName := filepath.Join(dirname, "email_template.gohtml")
+	tmplFileName := filepath.Join("resources", "request_email_verification_template.gohtml")
 
 	tmpl, err := template.ParseFiles(tmplFileName)
 	if err != nil {
