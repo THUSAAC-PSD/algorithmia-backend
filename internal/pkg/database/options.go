@@ -1,28 +1,11 @@
 package database
 
-import (
-	"fmt"
-)
-
 type Options struct {
 	Host        string `mapstructure:"host"`
 	Port        int    `mapstructure:"port"`
 	User        string `mapstructure:"user"`
 	DBName      string `mapstructure:"dbName"`
-	SSLMode     bool   `mapstructure:"sslMode"`
+	SSLMode     string `mapstructure:"sslMode"`
 	Password    string `mapstructure:"password"`
 	UseInMemory bool   `mapstructure:"useInMemory"`
-	UseSQLLite  bool   `mapstructure:"useSqlLite"`
-}
-
-func (h *Options) DNS() string {
-	datasource := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		h.User,
-		h.Password,
-		h.Host,
-		h.Port,
-		"postgres",
-	)
-
-	return datasource
 }

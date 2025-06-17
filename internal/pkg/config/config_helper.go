@@ -30,17 +30,9 @@ func BindAllConfigs() (*Config, error) {
 	_ = viper.BindEnv("gormOptions.dbName", "DB_NAME")
 	_ = viper.BindEnv("gormOptions.sslMode", "DB_SSL_MODE")
 	_ = viper.BindEnv("gormOptions.useInMemory", "DB_USE_IN_MEMORY")
-	_ = viper.BindEnv("gormOptions.useSqlLite", "DB_USE_SQLITE")
 
 	// EchoHttpOptions
 	_ = viper.BindEnv("echoHttpOptions.port", "PORT")
-	_ = viper.BindEnv("echoHttpOptions.development", "DEVELOPMENT")
-	_ = viper.BindEnv("echoHttpOptions.basePath", "BASE_PATH")
-	_ = viper.BindEnv("echoHttpOptions.debugErrorsResponse", "DEBUG_ERRORS_RESPONSE")
-	_ = viper.BindEnv("echoHttpOptions.ignoreLogUrls", "IGNORE_LOG_URLS")
-	_ = viper.BindEnv("echoHttpOptions.timeout", "HTTP_TIMEOUT")
-	_ = viper.BindEnv("echoHttpOptions.host", "HTTP_HOST")
-	_ = viper.BindEnv("echoHttpOptions.name", "APP_NAME")
 	_ = viper.BindEnv("echoHttpOptions.sessionSecret", "SESSION_SECRET")
 
 	// GomailOptions

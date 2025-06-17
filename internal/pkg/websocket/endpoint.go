@@ -18,6 +18,7 @@ type EndpointParams struct {
 	Hub            *Hub
 	AuthProvider   contract.AuthProvider
 	Logger         logger.Logger
+	Options        *Options
 }
 
 func NewEndpointParams(
@@ -25,6 +26,7 @@ func NewEndpointParams(
 	hub *Hub,
 	authProvider contract.AuthProvider,
 	logger logger.Logger,
+	opts *Options,
 ) *EndpointParams {
 	websocketGroup := v1Group.Group.Group("/ws")
 	return &EndpointParams{
@@ -32,6 +34,7 @@ func NewEndpointParams(
 		Hub:            hub,
 		AuthProvider:   authProvider,
 		Logger:         logger,
+		Options:        opts,
 	}
 }
 
@@ -56,9 +59,9 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return httperror.New(http.StatusUnauthorized, "Authentication required for WebSocket").WithInternal(err)
 		}
 
-		// TODO: security
 		conn, err := websocket.Accept(ctx.Response().Writer, ctx.Request(), &websocket.AcceptOptions{
-			InsecureSkipVerify: true, // DEV ONLY: if no TLS. DO NOT USE IN PROD.
+			InsecureSkipVerify: e.Options.SkipTLSVerification,
+			OriginPatterns:     e.Options.OriginPatterns,
 		})
 		if err != nil {
 			e.Logger.Errorw("WebSocket upgrade failed", map[string]interface{}{

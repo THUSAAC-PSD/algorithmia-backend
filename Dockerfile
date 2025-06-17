@@ -16,7 +16,6 @@ FROM alpine:latest
 
 WORKDIR /app
 
-COPY ./config /app/config
 COPY ./resources /app/resources
 COPY --from=builder /app/algorithmia-backend /app/algorithmia-backend
 

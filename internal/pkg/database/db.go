@@ -17,11 +17,6 @@ func NewGorm(cfg *Options) (*gorm.DB, error) {
 		return nil, errors.New("missing DBName in gorm configuration")
 	}
 
-	if cfg.UseSQLLite {
-		db, err := createSQLLiteDB(cfg.DNS())
-		return db, err
-	}
-
 	// InMemory doesn't work correctly with transactions - seems when we `Begin` a transaction on gorm.DB (with SQLLite in-memory) our previous gormDB before transaction will remove and the new gormDB with tx will go on the memory
 	if cfg.UseInMemory {
 		db, err := createInMemoryDB()
@@ -64,28 +59,18 @@ func createInMemoryDB() (*gorm.DB, error) {
 	return db, err
 }
 
-func createSQLLiteDB(dbFilePath string) (*gorm.DB, error) {
-	// https://gorm.io/docs/connecting_to_the_database.html#SQLite
-	// https://github.com/glebarez/sqlite
-	// https://www.connectionstrings.com/sqlite/
-	gormSQLLiteDB, err := gorm.Open(
-		sqlite.Open(dbFilePath),
-		&gorm.Config{})
-
-	return gormSQLLiteDB, err
-}
-
 func createPostgresDB(cfg *Options) error {
 	var db *sql.DB
 
 	// we should choose a default database in the connection, but because we don't have a database yet we specify postgres default database 'postgres'
 	dataSourceName := fmt.Sprintf(
-		"host=%s port=%d user=%s dbname=%s password=%s",
+		"host=%s port=%d user=%s dbname=%s password=%s sslmode=%s timezone=UTC",
 		cfg.Host,
 		cfg.Port,
 		cfg.User,
 		"postgres",
 		cfg.Password,
+		cfg.SSLMode,
 	)
 	postgresGormDB, err := gorm.Open(
 		gormPostgres.Open(dataSourceName),
