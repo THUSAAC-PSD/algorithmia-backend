@@ -18,6 +18,8 @@ func BindAllConfigs() (*Config, error) {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	_ = viper.BindEnv("environment", "APP_ENV")
+
 	// LoggerOptions
 	_ = viper.BindEnv("loggerOptions.level", "LOG_LEVEL")
 	_ = viper.BindEnv("loggerOptions.callerEnabled", "LOG_CALLER_ENABLED")
