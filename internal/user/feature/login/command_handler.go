@@ -58,17 +58,19 @@ func NewCommandHandler(
 	}
 }
 
-func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
+func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*User, error) {
 	if command == nil {
-		return customerror.ErrCommandNil
+		return nil, customerror.ErrCommandNil
 	}
 
 	if err := h.validator.StructCtx(ctx, command); err != nil {
-		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return nil, errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
+	var loggedInUser *User
+
 	uow := h.uowFactory.New()
-	return uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
+	err := uowhelper.Do(ctx, uow, h.l, func(ctx context.Context) error {
 		user, err := h.repo.GetUserByUsername(ctx, command.Username)
 		if err != nil {
 			return errors.WrapIf(err, "failed to get user by username")
@@ -91,6 +93,9 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) error {
 			return errors.WrapIf(err, "failed to set user in session")
 		}
 
+		loggedInUser = user
 		return nil
 	})
+
+	return loggedInUser, err
 }

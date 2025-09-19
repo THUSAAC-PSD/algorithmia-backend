@@ -1,7 +1,7 @@
 services:
   web_api:
     build: .
-    container_name: algorithmia_web_api
+    container_name: algorithmia_web_api_dev
     restart: unless-stopped
     env_file:
       - .env
@@ -11,20 +11,20 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - algorithmia-backend
+      - algorithmia-backend-dev
 
   postgres:
     image: postgres:latest
-    container_name: algorithmia_postgres
+    container_name: algorithmia_postgres_dev
     restart: unless-stopped
     env_file:
       - .env
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
-      - algorithmia-backend
+      - algorithmia-backend-dev
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -32,8 +32,8 @@ services:
       retries: 5
 
 networks:
-  algorithmia-backend:
-    name: algorithmia-backend
+  algorithmia-backend-dev:
+    name: algorithmia-backend-dev
 
 volumes:
   postgres-data:

@@ -25,6 +25,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/verifyemail"
 
 	"emperror.dev/errors"
 	"github.com/go-playground/validator"
@@ -41,6 +42,10 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(requestemailverification.NewCommandHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide request email verification command handler")
+	}
+
+	if err := a.Container.Provide(verifyemail.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide verify email command handler")
 	}
 
 	if err := a.Container.Provide(login.NewCommandHandler); err != nil {

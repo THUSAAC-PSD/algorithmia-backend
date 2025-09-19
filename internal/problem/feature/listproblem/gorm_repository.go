@@ -225,48 +225,55 @@ func (r *GormRepository) fetchRelatedProblems(
             rpv.problem_difficulty_id as latest_version_difficulty_id 
         `)
 
-	conditions := make([]string, 0)
-	args := make([]interface{}, 0)
+	// We build OR visibility predicates; user should ALWAYS see their own created problems
+	visibilityPredicates := make([]string, 0)
+	visibilityArgs := make([]interface{}, 0)
 
-	conditions = append(conditions, "reviewer_id = ?")
-	args = append(args, userID)
+	// Always own problems
+	visibilityPredicates = append(visibilityPredicates, "p.creator_id = ?")
+	visibilityArgs = append(visibilityArgs, userID)
+
+	// As reviewer
+	visibilityPredicates = append(visibilityPredicates, "p.reviewer_id = ?")
+	visibilityArgs = append(visibilityArgs, userID)
+
+	// Testing assignments
+	if showAssignedTesting {
+		visibilityPredicates = append(visibilityPredicates, "pr.user_user_id = ?")
+		visibilityArgs = append(visibilityArgs, userID)
+	}
+
+	// Pending review for reviewers with global view
+	if showAllPendingReview {
+		visibilityPredicates = append(visibilityPredicates, "p.status = ?")
+		visibilityArgs = append(visibilityArgs, constant.ProblemStatusPendingReview)
+	}
+
+	// Global list all overrides everything else
+	if showAll {
+		visibilityPredicates = []string{"1 = 1"}
+		visibilityArgs = []interface{}{}
+	}
+
+	whereClause := strings.Join(visibilityPredicates, " OR ")
+	if onlyShowCompleted {
+		whereClause = "(" + whereClause + ") AND p.status = ?"
+		visibilityArgs = append(visibilityArgs, constant.ProblemStatusCompleted)
+	}
 
 	fmt.Printf(
-		"showAll: %v showCreated: %v showAllPendingReview: %v showAssignedTesting: %v\n",
+		"fetchRelatedProblems | user=%s showAll=%v showCreated=%v showAllPendingReview=%v showAssignedTesting=%v onlyShowCompleted=%v where=%s args=%v\n",
+		userID,
 		showAll,
 		showCreated,
 		showAllPendingReview,
 		showAssignedTesting,
+		onlyShowCompleted,
+		whereClause,
+		visibilityArgs,
 	)
 
-	if showAll {
-		conditions = append(conditions, "0 = 0")
-	} else {
-		if showCreated {
-			conditions = append(conditions, "creator_id = ?")
-			args = append(args, userID)
-		}
-
-		if showAllPendingReview {
-			conditions = append(conditions, "status = ?")
-			args = append(args, constant.ProblemStatusPendingReview)
-		}
-
-		if showAssignedTesting {
-			conditions = append(conditions, "pr.user_user_id = ?")
-			args = append(args, userID)
-		}
-	}
-
-	whereClause := strings.Join(conditions, " OR ")
-	if onlyShowCompleted {
-		whereClause = "(" + whereClause + ") AND status = ?"
-		args = append(args, constant.ProblemStatusCompleted)
-	}
-
-	query = query.Where(whereClause, args...)
-
-	if err := query.Scan(&problems).Error; err != nil {
+	if err := query.Where(whereClause, visibilityArgs...).Scan(&problems).Error; err != nil {
 		return nil, errors.Wrap(err, "failed to get all related problems")
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problemdraft"
 
 	"emperror.dev/errors"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -31,6 +32,19 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 		command := &Command{}
 		if err := ctx.Bind(command); err != nil {
 			return httperror.New(http.StatusBadRequest, "Invalid request format")
+		}
+
+		// Manually parse UUID path param because Echo binder does not populate uuid.UUID fields reliably
+		if command.ProblemDraftID == uuid.Nil {
+			if raw := ctx.Param("problem_draft_id"); raw != "" {
+				id, err := uuid.Parse(raw)
+				if err != nil {
+					return httperror.New(http.StatusBadRequest, "Invalid problem_draft_id path parameter")
+				}
+				command.ProblemDraftID = id
+			} else {
+				return httperror.New(http.StatusBadRequest, "Missing problem_draft_id path parameter")
+			}
 		}
 
 		if err := ctx.Validate(command); err != nil {

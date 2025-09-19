@@ -1,4 +1,4 @@
-package login
+package verifyemail
 
 import (
 	"net/http"
@@ -23,7 +23,7 @@ func NewEndpoint(params *user.EndpointParams, handler *CommandHandler) *Endpoint
 }
 
 func (e *Endpoint) MapEndpoint() {
-	e.AuthGroup.POST("/login", e.handle())
+	e.AuthGroup.POST("/verify-email", e.handle())
 }
 
 func (e *Endpoint) handle() echo.HandlerFunc {
@@ -37,18 +37,15 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return err
 		}
 
-		userData, err := e.handler.Handle(ctx.Request().Context(), command)
-		if errors.Is(err, ErrInvalidCredentials) {
-			return httperror.New(http.StatusUnprocessableEntity, "Invalid credentials").
-				WithType(httperror.ErrTypeInvalidCredentials)
+		result, err := e.handler.Handle(ctx.Request().Context(), command)
+		if errors.Is(err, ErrInvalidOrExpiredToken) {
+			return httperror.New(http.StatusUnprocessableEntity, "Invalid or expired verification token")
+		} else if errors.Is(err, ErrUserAlreadyExists) {
+			return httperror.New(http.StatusConflict, "User with this email already exists")
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}
 
-		// Return user data instead of NoContent
-		return ctx.JSON(http.StatusOK, map[string]interface{}{
-			"username": userData.Username,
-			"email":    userData.Email,
-		})
+		return ctx.JSON(http.StatusOK, result)
 	}
 }

@@ -37,7 +37,11 @@ func BindAllConfigs() (*Config, error) {
 	_ = viper.BindEnv("echoHttpOptions.port", "PORT")
 	_ = viper.BindEnv("echoHttpOptions.sessionSecret", "SESSION_SECRET")
 
-	// GomailOptions
+	// PostmarkOptions
+	_ = viper.BindEnv("postmarkOptions.serverToken", "POSTMARK_SERVER_TOKEN")
+	_ = viper.BindEnv("postmarkOptions.fromEmail", "POSTMARK_FROM_EMAIL")
+
+	// GomailOptions (legacy SMTP fallback)
 	_ = viper.BindEnv("gomailOptions.host", "MAIL_HOST")
 	_ = viper.BindEnv("gomailOptions.port", "MAIL_PORT")
 	_ = viper.BindEnv("gomailOptions.username", "MAIL_USERNAME")

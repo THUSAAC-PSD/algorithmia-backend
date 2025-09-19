@@ -25,8 +25,7 @@ func NewGomailEmailSender(opts *mailing.Options) (*GomailEmailSender, error) {
 		return nil, errors.WrapIf(err, "failed to parse email template")
 	}
 
-	return &GomailEmailSender{
-		opts:             opts,
+	return &GomailEmailSender{		opts:             opts,
 		bodyHTMLTemplate: tmpl,
 	}, nil
 }

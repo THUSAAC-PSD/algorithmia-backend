@@ -28,34 +28,41 @@ var (
 type Repository interface {
 	IsNotTimedOut(ctx context.Context, email string) (bool, error)
 	IsNotAssociatedWithUser(ctx context.Context, email string) (bool, error)
-	CreateEmailVerificationCode(ctx context.Context, email string, code string) error
+	CreateEmailVerificationCode(ctx context.Context, email string, username string, passwordHash string, code string) error
 }
 
 type EmailSender interface {
 	SendVerificationEmail(ctx context.Context, email string, code string) error
 }
 
+type PasswordHasher interface {
+	Hash(password string) (string, error)
+}
+
 type CommandHandler struct {
-	repo        Repository
-	emailSender EmailSender
-	validator   *validator.Validate
-	uowFactory  contract.UnitOfWorkFactory
-	l           logger.Logger
+	repo           Repository
+	emailSender    EmailSender
+	passwordHasher PasswordHasher
+	validator      *validator.Validate
+	uowFactory     contract.UnitOfWorkFactory
+	l              logger.Logger
 }
 
 func NewCommandHandler(
 	repo Repository,
 	emailSender EmailSender,
+	passwordHasher PasswordHasher,
 	validator *validator.Validate,
 	uowFactory contract.UnitOfWorkFactory,
 	l logger.Logger,
 ) *CommandHandler {
 	return &CommandHandler{
-		repo:        repo,
-		emailSender: emailSender,
-		validator:   validator,
-		uowFactory:  uowFactory,
-		l:           l,
+		repo:           repo,
+		emailSender:    emailSender,
+		passwordHasher: passwordHasher,
+		validator:      validator,
+		uowFactory:     uowFactory,
+		l:              l,
 	}
 }
 
@@ -85,12 +92,18 @@ func (c *CommandHandler) Handle(
 			return errors.WithStack(ErrEmailAssociatedWithUser)
 		}
 
+		// Hash the password before storing
+		hashedPassword, err := c.passwordHasher.Hash(command.Password)
+		if err != nil {
+			return errors.WrapIf(err, "failed to hash password")
+		}
+
 		code, err := c.generateVerificationCode()
 		if err != nil {
 			return errors.WrapIf(err, "failed to generate verification code")
 		}
 
-		if err := c.repo.CreateEmailVerificationCode(ctx, command.Email, code); err != nil {
+		if err := c.repo.CreateEmailVerificationCode(ctx, command.Email, command.Username, hashedPassword, code); err != nil {
 			return errors.WrapIf(err, "failed to create email verification code")
 		}
 

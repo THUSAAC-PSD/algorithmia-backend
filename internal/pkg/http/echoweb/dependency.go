@@ -40,7 +40,7 @@ func AddEcho(container *dig.Container) error {
 		e.Use(log.EchoLogger(l))
 		e.Use(middleware.BodyLimit(constant.BodyLimit))
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins:     []string{"http://localhost:5173"},
+			AllowOrigins:     []string{"http://localhost:5173", "https://algorithmia.thusaac.com", "http://algorithmia.thusaac.com"},
 			AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 			AllowCredentials: true,
 		}))

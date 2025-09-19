@@ -22,7 +22,7 @@ func (r *GormRepository) GetUserByUsername(ctx context.Context, username string)
 
 	var user database.User
 	if err := db.WithContext(ctx).
-		Where("username = ?", username).
+		Where("username = ? OR email = ?", username, username).
 		First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // User not found

@@ -33,6 +33,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/verifyemail"
 	userInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/infrastructure"
 
 	"emperror.dev/errors"
@@ -50,13 +51,14 @@ func (b *ApplicationBuilder) AddFeatures() error {
 
 	if err := b.Container.Provide(userInfra.NewArgonPasswordHasher,
 		dig.As(new(register.PasswordHasher)),
+		dig.As(new(requestemailverification.PasswordHasher)),
 		dig.As(new(login.PasswordChecker))); err != nil {
 		return errors.WrapIf(err, "failed to provide argon password hasher")
 	}
 
-	if err := b.Container.Provide(requestemailverification.NewGomailEmailSender,
+	if err := b.Container.Provide(requestemailverification.NewPostmarkEmailSender,
 		dig.As(new(requestemailverification.EmailSender))); err != nil {
-		return errors.WrapIf(err, "failed to provide gomail email sender")
+		return errors.WrapIf(err, "failed to provide postmark email sender")
 	}
 
 	if err := b.Container.Provide(userInfra.NewHTTPSessionManager,
@@ -105,6 +107,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 	if err := b.Container.Provide(requestemailverification.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide request email verification endpoint")
+	}
+
+	if err := b.Container.Provide(verifyemail.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide verify email endpoint")
 	}
 
 	if err := b.Container.Provide(login.NewEndpoint); err != nil {
@@ -199,6 +205,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		websocketEndpoint *websocket.Endpoint,
 		registerEndpoint *register.Endpoint,
 		requestEmailVerificationEndpoint *requestemailverification.Endpoint,
+		verifyEmailEndpoint *verifyemail.Endpoint,
 		loginEndpoint *login.Endpoint,
 		logoutEndpoint *logout.Endpoint,
 		getCurrentUserEndpoint *getcurrentuser.Endpoint,
@@ -226,6 +233,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			websocketEndpoint,
 			registerEndpoint,
 			requestEmailVerificationEndpoint,
+			verifyEmailEndpoint,
 			loginEndpoint,
 			logoutEndpoint,
 			getCurrentUserEndpoint,
@@ -265,6 +273,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(requestemailverification.NewGormRepository,
 		dig.As(new(requestemailverification.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide request email verification repository")
+	}
+
+	if err := b.Container.Provide(verifyemail.NewGormRepository,
+		dig.As(new(verifyemail.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide verify email repository")
 	}
 
 	if err := b.Container.Provide(login.NewGormRepository,

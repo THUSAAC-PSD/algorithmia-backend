@@ -3,8 +3,10 @@ package requestemailverification
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/database"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/constant"
 
 	"emperror.dev/errors"
 	"github.com/google/uuid"
@@ -21,7 +23,7 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 	}
 }
 
-func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email string, code string) error {
+func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email string, username string, passwordHash string, code string) error {
 	db := database.GetDBFromContext(ctx, r.db)
 
 	id, err := uuid.NewV7()
@@ -29,10 +31,16 @@ func (r *GormRepository) CreateEmailVerificationCode(ctx context.Context, email 
 		return errors.WrapIf(err, "failed to generate UUID")
 	}
 
+	// Set expiration time using shared constant and UTC to avoid timezone issues
+	expiresAt := time.Now().UTC().Add(time.Duration(constant.EmailVerificationValidDurationMins) * time.Minute)
+
 	model := &database.EmailVerificationCode{
 		EmailVerificationCodeID: id,
 		Email:                   email,
+		Username:                username,
+		PasswordHash:            passwordHash,
 		Code:                    code,
+		ExpiresAt:               expiresAt,
 	}
 
 	if err := db.WithContext(ctx).Create(model).Error; err != nil {
