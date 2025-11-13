@@ -38,7 +38,7 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return err
 		}
 
-		err := e.handler.Handle(ctx.Request().Context(), command)
+		code, err := e.handler.Handle(ctx.Request().Context(), command)
 		if errors.Is(err, ErrEmailTimedOut) {
 			return httperror.New(http.StatusTooManyRequests, fmt.Sprintf("You can only send one email every %d minutes", timeoutDurationMins)).
 				WithType(httperror.ErrTypeRateLimitExceeded)
@@ -47,6 +47,14 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 				WithType(httperror.ErrTypeUserAlreadyExists)
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
+		}
+
+		// In development mode (when email verification is disabled), return the code
+		if !e.handler.requireEmailVerification && code != "" {
+			return ctx.JSON(http.StatusOK, map[string]string{
+				"message": "Email verification disabled (development mode)",
+				"code":    code,
+			})
 		}
 
 		return ctx.NoContent(http.StatusNoContent)

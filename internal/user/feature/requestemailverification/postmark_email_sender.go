@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path/filepath"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/postmark"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/constant"
 
@@ -18,6 +19,7 @@ import (
 
 type PostmarkEmailSender struct {
 	opts             *postmark.Options
+	frontendURL      string
 	bodyHTMLTemplate *template.Template
 }
 
@@ -30,7 +32,7 @@ type PostmarkEmailRequest struct {
 	Tag      string `json:"Tag,omitempty"`
 }
 
-func NewPostmarkEmailSender(opts *postmark.Options) (*PostmarkEmailSender, error) {
+func NewPostmarkEmailSender(opts *postmark.Options, cfg *config.Config) (*PostmarkEmailSender, error) {
 	tmplFileName := filepath.Join("resources", "request_email_verification_template.gohtml")
 
 	tmpl, err := template.ParseFiles(tmplFileName)
@@ -38,22 +40,28 @@ func NewPostmarkEmailSender(opts *postmark.Options) (*PostmarkEmailSender, error
 		return nil, errors.WrapIf(err, "failed to parse email template")
 	}
 
+	frontendURL := cfg.FrontendURL
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173" // Default fallback
+	}
+
 	return &PostmarkEmailSender{
 		opts:             opts,
+		frontendURL:      frontendURL,
 		bodyHTMLTemplate: tmpl,
 	}, nil
 }
 
 func (s *PostmarkEmailSender) SendVerificationEmail(ctx context.Context, email string, code string) error {
 	subject := "【清华大学学生算法协会】注册确认邮件"
-	
+
 	// URL-encode token and email to ensure special characters (like '+') are preserved correctly
 	encodedToken := url.QueryEscape(code)
 	encodedEmail := url.QueryEscape(email)
 
-	// Create verification link with the encoded params
-	verificationLink := fmt.Sprintf("https://algorithmia.thusaac.com/verify-email?token=%s&email=%s", encodedToken, encodedEmail)
-	
+	// Create verification link with the encoded params using frontendURL from config
+	verificationLink := fmt.Sprintf("%s/verify-email?token=%s&email=%s", s.frontendURL, encodedToken, encodedEmail)
+
 	// Generate HTML content
 	var htmlBuf bytes.Buffer
 	if err := s.bodyHTMLTemplate.Execute(&htmlBuf, struct {

@@ -11,11 +11,13 @@ import (
 )
 
 type Config struct {
-	Environment      environment.Environment `mapstructure:"ENVIRONMENT"`
-	GormOptions      database.Options        `mapstructure:"GORMOPTIONS"`
-	EchoHttpOptions  echoweb.Options         `mapstructure:"ECHOHTTPOPTIONS"`
-	PostmarkOptions  postmark.Options        `mapstructure:"POSTMARKOPTIONS"`
-	GomailOptions    mailing.Options         `mapstructure:"GOMAILOPTIONS"`
-	WebsocketOptions websocket.Options       `mapstructure:"WEBSOCKETOPTIONS"`
-	LoggerOptions    logger.Options          `mapstructure:"LOGGEROPTIONS"`
+	Environment              environment.Environment `mapstructure:"ENVIRONMENT"`
+	FrontendURL              string                  `mapstructure:"FRONTEND_URL"`
+	RequireEmailVerification bool                    `mapstructure:"REQUIRE_EMAIL_VERIFICATION"`
+	GormOptions              database.Options        `mapstructure:"GORMOPTIONS"`
+	EchoHttpOptions          echoweb.Options         `mapstructure:"ECHOHTTPOPTIONS"`
+	PostmarkOptions          postmark.Options        `mapstructure:"POSTMARKOPTIONS"`
+	GomailOptions            mailing.Options         `mapstructure:"GOMAILOPTIONS"`
+	WebsocketOptions         websocket.Options       `mapstructure:"WEBSOCKETOPTIONS"`
+	LoggerOptions            logger.Options          `mapstructure:"LOGGEROPTIONS"`
 }

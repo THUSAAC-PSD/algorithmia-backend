@@ -4,7 +4,6 @@ go 1.24
 
 require (
 	emperror.dev/errors v0.8.1
-	github.com/caarlos0/env/v8 v8.0.0
 	github.com/coder/websocket v1.8.13
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-playground/validator v9.31.0+incompatible
@@ -14,7 +13,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/mcuadros/go-defaults v1.2.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/wader/gormstore/v2 v2.0.3

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/config"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract/uowhelper"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/customerror"
@@ -40,12 +41,13 @@ type PasswordHasher interface {
 }
 
 type CommandHandler struct {
-	repo           Repository
-	emailSender    EmailSender
-	passwordHasher PasswordHasher
-	validator      *validator.Validate
-	uowFactory     contract.UnitOfWorkFactory
-	l              logger.Logger
+	repo                     Repository
+	emailSender              EmailSender
+	passwordHasher           PasswordHasher
+	validator                *validator.Validate
+	uowFactory               contract.UnitOfWorkFactory
+	l                        logger.Logger
+	requireEmailVerification bool
 }
 
 func NewCommandHandler(
@@ -55,31 +57,35 @@ func NewCommandHandler(
 	validator *validator.Validate,
 	uowFactory contract.UnitOfWorkFactory,
 	l logger.Logger,
+	cfg *config.Config,
 ) *CommandHandler {
 	return &CommandHandler{
-		repo:           repo,
-		emailSender:    emailSender,
-		passwordHasher: passwordHasher,
-		validator:      validator,
-		uowFactory:     uowFactory,
-		l:              l,
+		repo:                     repo,
+		emailSender:              emailSender,
+		passwordHasher:           passwordHasher,
+		validator:                validator,
+		uowFactory:               uowFactory,
+		l:                        l,
+		requireEmailVerification: cfg.RequireEmailVerification,
 	}
 }
 
 func (c *CommandHandler) Handle(
 	ctx context.Context,
 	command *Command,
-) error {
+) (string, error) {
 	if command == nil {
-		return errors.WithStack(customerror.ErrCommandNil)
+		return "", errors.WithStack(customerror.ErrCommandNil)
 	}
 
 	if err := c.validator.StructCtx(ctx, command); err != nil {
-		return errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
+		return "", errors.WithStack(errors.Append(err, customerror.ErrValidationFailed))
 	}
 
+	var generatedCode string
+
 	uow := c.uowFactory.New()
-	return uowhelper.Do(ctx, uow, c.l, func(ctx context.Context) error {
+	err := uowhelper.Do(ctx, uow, c.l, func(ctx context.Context) error {
 		if ok, err := c.repo.IsNotTimedOut(ctx, command.Email); err != nil {
 			return errors.WrapIf(err, "failed to check if email is not timed out")
 		} else if !ok {
@@ -103,8 +109,16 @@ func (c *CommandHandler) Handle(
 			return errors.WrapIf(err, "failed to generate verification code")
 		}
 
+		generatedCode = code
+
 		if err := c.repo.CreateEmailVerificationCode(ctx, command.Email, command.Username, hashedPassword, code); err != nil {
 			return errors.WrapIf(err, "failed to create email verification code")
+		}
+
+		// Skip email sending if email verification is not required (development mode)
+		if !c.requireEmailVerification {
+			c.l.Info("Email verification disabled - skipping email send (development mode)")
+			return nil
 		}
 
 		if err := c.emailSender.SendVerificationEmail(ctx, command.Email, code); err != nil {
@@ -113,6 +127,8 @@ func (c *CommandHandler) Handle(
 
 		return nil
 	})
+
+	return generatedCode, err
 }
 
 func (c *CommandHandler) generateVerificationCode() (string, error) {
