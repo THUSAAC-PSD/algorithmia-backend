@@ -1,28 +1,26 @@
 # https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-#name: Run tests
-#
-#on:
-#  push:
-#    branches: ["main"]
-#  pull_request:
-#    branches: ["main"]
-#
-#jobs:
-#  build:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      # https://github.com/actions/setup-go/issues/326
-#      - name: Set up Go
-#        uses: actions/setup-go@v5
-#        with:
-#          go-version: 1.24
-#
-#      - name: Build
-#        run: go build -v ./...
-#      - name: Run Integration Tests
-#        run: go test -tags="integration" -timeout=30m  -count=1 -p=1 -parallel=1 ./...
-#      - name: Run E2E Tests
-#        run: go test -tags="e2e" -timeout=30m  -count=1 -p=1 -parallel=1 ./...
+name: Run tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run Tests
+        run: go test ./... -v -short

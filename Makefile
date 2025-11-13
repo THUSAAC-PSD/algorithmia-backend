@@ -14,17 +14,18 @@ build:
 install-dependencies:
 	@./scripts/install-dependencies.sh 
 
-# .PHONY: integration-test
-# integration-test:
-# 	@./scripts/test.sh integration
-#
-# .PHONY: e2e-test
-# e2e-test:
-# 	@./scripts/test.sh e2e
+.PHONY: test
+test:
+	@echo "Running unit tests..."
+	@go test ./... -v -short
 
-#.PHONY: load-test
-#load-test:
-#	@./scripts/test.sh load-test
+.PHONY: integration-test
+integration-test:
+	@./scripts/test.sh integration
+
+.PHONY: e2e-test
+e2e-test:
+	@./scripts/test.sh e2e
 
 .PHONY: format
 format:
