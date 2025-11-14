@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -84,6 +85,120 @@ func main() {
 	}
 
 	ctx := context.Background()
+
+	// Check if there are existing test users and ask for confirmation
+	var existingCount int64
+	db.WithContext(ctx).Model(&database.User{}).Where("email LIKE ?", "%@algorithmia.com").Count(&existingCount)
+
+	if existingCount > 0 {
+		fmt.Printf("\n⚠️  Found %d existing test user(s) with @algorithmia.com email addresses.\n", existingCount)
+		fmt.Print("Do you want to delete them and recreate? (yes/no): ")
+
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatalf("Failed to read input: %v", err)
+		}
+
+		response = strings.ToLower(strings.TrimSpace(response))
+		if response == "yes" || response == "y" {
+			fmt.Println("\n🗑️  Deleting existing test users and related data...")
+
+			// Get all users with @algorithmia.com email
+			var usersToDelete []database.User
+			if err := db.WithContext(ctx).Where("email LIKE ?", "%@algorithmia.com").Find(&usersToDelete).Error; err != nil {
+				log.Fatalf("Failed to find users: %v", err)
+			}
+
+			// Get user IDs
+			userIDs := make([]uuid.UUID, len(usersToDelete))
+			for i, user := range usersToDelete {
+				userIDs[i] = user.UserID
+			}
+
+			// Delete related data in correct order to respect foreign key constraints
+			fmt.Println("  - Deleting chat messages...")
+			db.WithContext(ctx).Where("sender_id IN ?", userIDs).Delete(&database.ProblemChatMessage{})
+
+			fmt.Println("  - Deleting problem reviews...")
+			db.WithContext(ctx).Where("reviewer_id IN ?", userIDs).Delete(&database.ProblemReview{})
+
+			fmt.Println("  - Deleting problem test results...")
+			db.WithContext(ctx).Exec("DELETE FROM problem_test_results WHERE tester_id IN (?)", userIDs)
+
+			// Get ALL problem IDs (both from creator and from problem drafts)
+			var problemIDs []uuid.UUID
+			db.WithContext(ctx).Model(&database.Problem{}).Where("creator_id IN ?", userIDs).Pluck("problem_id", &problemIDs)
+
+			// Also get problem IDs from problem_drafts that these users created
+			var draftProblemIDs []uuid.UUID
+			db.WithContext(ctx).Raw("SELECT problem_id FROM problems WHERE problem_draft_id IN (SELECT problem_draft_id FROM problem_drafts WHERE creator_id IN (?))", userIDs).Scan(&draftProblemIDs)
+
+			// Combine both sets
+			allProblemIDs := append(problemIDs, draftProblemIDs...)
+
+			if len(allProblemIDs) > 0 {
+				fmt.Println("  - Removing users from problem testers...")
+				for _, problemID := range allProblemIDs {
+					var problem database.Problem
+					problem.ProblemID = problemID
+					db.WithContext(ctx).Model(&problem).Association("Testers").Clear()
+				}
+
+				// Get problem version IDs
+				var versionIDs []uuid.UUID
+				db.WithContext(ctx).Model(&database.ProblemVersion{}).Where("problem_id IN ?", allProblemIDs).Pluck("problem_version_id", &versionIDs)
+
+				if len(versionIDs) > 0 {
+					fmt.Println("  - Deleting problem version examples...")
+					db.WithContext(ctx).Where("problem_version_id IN ?", versionIDs).Delete(&database.ProblemVersionExample{})
+
+					fmt.Println("  - Deleting problem version details...")
+					db.WithContext(ctx).Where("problem_version_id IN ?", versionIDs).Delete(&database.ProblemVersionDetail{})
+				}
+
+				fmt.Println("  - Deleting problem versions...")
+				db.WithContext(ctx).Where("problem_id IN ?", allProblemIDs).Delete(&database.ProblemVersion{})
+
+				fmt.Println("  - Deleting problems...")
+				db.WithContext(ctx).Where("problem_id IN ?", allProblemIDs).Delete(&database.Problem{})
+			}
+
+			// Get problem draft IDs
+			var draftIDs []uuid.UUID
+			db.WithContext(ctx).Model(&database.ProblemDraft{}).Where("creator_id IN ?", userIDs).Pluck("problem_draft_id", &draftIDs)
+
+			if len(draftIDs) > 0 {
+				fmt.Println("  - Deleting problem draft examples...")
+				db.WithContext(ctx).Where("problem_draft_id IN ?", draftIDs).Delete(&database.ProblemDraftExample{})
+
+				fmt.Println("  - Deleting problem draft details...")
+				db.WithContext(ctx).Where("problem_draft_id IN ?", draftIDs).Delete(&database.ProblemDraftDetail{})
+
+				fmt.Println("  - Deleting problem drafts...")
+				db.WithContext(ctx).Where("problem_draft_id IN ?", draftIDs).Delete(&database.ProblemDraft{})
+			}
+
+			// Delete role associations using GORM associations
+			fmt.Println("  - Clearing user roles...")
+			for _, user := range usersToDelete {
+				if err := db.WithContext(ctx).Model(&user).Association("Roles").Clear(); err != nil {
+					log.Printf("Warning: Failed to clear roles for user %s: %v", user.Email, err)
+				}
+			}
+
+			// Finally, delete the users
+			fmt.Println("  - Deleting users...")
+			if err := db.WithContext(ctx).Where("email LIKE ?", "%@algorithmia.com").Delete(&database.User{}).Error; err != nil {
+				log.Fatalf("Failed to delete users: %v", err)
+			}
+
+			fmt.Println("✅ Existing test users and related data deleted successfully!")
+		} else {
+			fmt.Println("\n❌ Operation cancelled. Exiting without changes.")
+			return
+		}
+	}
 
 	// Get all roles
 	var roles []database.Role
@@ -186,14 +301,6 @@ func main() {
 	}
 
 	for _, seed := range seedUsers {
-		// Check if user already exists
-		var existingUser database.User
-		err := db.WithContext(ctx).Where("email = ?", seed.Email).First(&existingUser).Error
-		if err == nil {
-			fmt.Printf("⏭️  User %s (%s) already exists, skipping...\n", seed.Username, seed.Email)
-			continue
-		}
-
 		// Hash password using Argon2 (same as the backend)
 		hasher := infrastructure.NewArgonPasswordHasher()
 		hashedPassword, err := hasher.Hash(seed.Password)
@@ -223,7 +330,6 @@ func main() {
 			Email:          seed.Email,
 			DisplayName:    seed.Display,
 			HashedPassword: hashedPassword,
-			Roles:          userRoles,
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 		}
@@ -231,6 +337,13 @@ func main() {
 		if err := db.WithContext(ctx).Create(&user).Error; err != nil {
 			log.Printf("❌ Failed to create user %s: %v", seed.Username, err)
 			continue
+		}
+
+		// Associate roles with the user
+		if len(userRoles) > 0 {
+			if err := db.WithContext(ctx).Model(&user).Association("Roles").Append(userRoles); err != nil {
+				log.Printf("⚠️  Failed to assign roles to user %s: %v", seed.Username, err)
+			}
 		}
 
 		fmt.Printf("✅ Created user: %s (%s)\n", seed.Username, seed.Email)

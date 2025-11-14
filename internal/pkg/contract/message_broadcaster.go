@@ -14,6 +14,7 @@ const (
 
 	MessageTypeUser      MessageType = "user"
 	MessageTypeSubmitted MessageType = "submitted"
+	MessageTypeEdited    MessageType = "edited"
 	MessageTypeReviewed  MessageType = "reviewed"
 	MessageTypeTested    MessageType = "tested"
 	MessageTypeCompleted MessageType = "completed"
@@ -44,6 +45,12 @@ type MessageBroadcaster interface {
 	BroadcastSubmittedMessage(
 		problemID uuid.UUID,
 		submitter MessageUser,
+		timestamp time.Time,
+	) error
+
+	BroadcastEditedMessage(
+		problemID uuid.UUID,
+		editor MessageUser,
 		timestamp time.Time,
 	) error
 

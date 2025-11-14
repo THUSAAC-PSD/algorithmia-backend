@@ -7,6 +7,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/unassignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/checkoutdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/getproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
@@ -118,6 +119,10 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(testproblem.NewCommandHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide test problem command handler")
+	}
+
+	if err := a.Container.Provide(checkoutdraft.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide checkout draft command handler")
 	}
 
 	if err := a.Container.Provide(deleteproblemdraft.NewCommandHandler); err != nil {

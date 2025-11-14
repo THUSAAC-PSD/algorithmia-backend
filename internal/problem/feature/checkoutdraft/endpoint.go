@@ -1,4 +1,4 @@
-package testproblem
+package checkoutdraft
 
 import (
 	"net/http"
@@ -23,7 +23,7 @@ func NewEndpoint(params *problem.EndpointParams, handler *CommandHandler) *Endpo
 }
 
 func (e *Endpoint) MapEndpoint() {
-	e.ProblemsGroup.POST("/:problem_id/test-results", e.handle())
+	e.ProblemsGroup.POST("/:problem_id/checkout-draft", e.handle())
 }
 
 func (e *Endpoint) handle() echo.HandlerFunc {
@@ -37,17 +37,15 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 			return err
 		}
 
-		response, err := e.handler.Handle(ctx.Request().Context(), command)
-		if errors.Is(err, problem.ErrProblemNotFound) {
-			return httperror.New(http.StatusNotFound, "The problem does not exist")
-		} else if errors.Is(err, ErrProblemNotPendingTesting) {
-			return httperror.New(http.StatusUnprocessableEntity, "The problem is not ready for testing yet")
-		} else if errors.Is(err, ErrTesterNotAssigned) {
-			return httperror.New(http.StatusForbidden, "You are not assigned as a tester for this problem")
+		resp, err := e.handler.Handle(ctx.Request().Context(), command)
+		if errors.Is(err, ErrProblemNotFound) {
+			return httperror.New(http.StatusNotFound, "Problem not found")
+		} else if errors.Is(err, ErrForbidden) {
+			return httperror.New(http.StatusForbidden, "You are not allowed to edit this problem")
 		} else if err != nil {
 			return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
 		}
 
-		return ctx.JSON(http.StatusCreated, response)
+		return ctx.JSON(http.StatusOK, resp)
 	}
 }

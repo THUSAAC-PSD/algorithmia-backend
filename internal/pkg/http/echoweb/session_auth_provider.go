@@ -51,7 +51,7 @@ func (s *SessionAuthProvider) MustGetUserDetails(
 	if err := db.WithContext(ctx).
 		Preload("Roles").
 		Preload("Roles.Permissions").
-		Where("user_id", userID).
+		Where("user_id = ?", userID).
 		First(&user).Error; err != nil {
 		return nil, err
 	}

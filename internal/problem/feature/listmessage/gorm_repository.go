@@ -22,6 +22,209 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 	}
 }
 
+func (r *GormRepository) GetSubmissionMessages(ctx context.Context, problemID uuid.UUID) ([]ResponseChatMessage, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
+	var problem database.Problem
+	if err := db.WithContext(ctx).
+		Preload("Creator").
+		Where("problem_id = ?", problemID).
+		First(&problem).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.WithStack(ErrProblemNotFound)
+		}
+
+		return nil, errors.WrapIf(err, "failed to get problem for submission history")
+	}
+
+	var versions []database.ProblemVersion
+	if err := db.WithContext(ctx).
+		Preload("SubmittedByUser").
+		Preload("Details").
+		Preload("Examples").
+		Where("problem_id = ?", problemID).
+		Order("created_at ASC").
+		Find(&versions).Error; err != nil {
+		return nil, errors.WrapIf(err, "failed to get problem versions")
+	}
+
+	messages := make([]ResponseChatMessage, 0, len(versions))
+	for i, version := range versions {
+		user := contract.MessageUser{
+			UserID:   version.SubmittedBy,
+			Username: version.SubmittedByUser.Username,
+		}
+
+		if user.UserID == uuid.Nil {
+			user.UserID = problem.CreatorID
+			if problem.Creator.UserID != uuid.Nil {
+				user.Username = problem.Creator.Username
+			}
+		}
+
+		messageType := contract.MessageTypeSubmitted
+		payload := ResponseChatSubmittedPayload{Submitter: user}
+		if i > 0 {
+			messageType = contract.MessageTypeEdited
+			// Compute changed fields and diffs compared to previous version
+			changed, diffs := computeChanged(&versions[i-1], &version)
+			if len(changed) > 0 {
+				payload.ChangedFields = changed
+			}
+			if len(diffs) > 0 {
+				payload.Diffs = diffs
+			}
+		}
+
+		messages = append(messages, ResponseChatMessage{
+			MessageType: string(messageType),
+			Payload:     payload,
+			Timestamp:   version.CreatedAt,
+		})
+	}
+
+	return messages, nil
+}
+
+// computeChangedFields compares two consecutive versions and returns a concise list of
+// top-level fields that changed. For multi-language details, if any language differs,
+// we mark the corresponding field as changed.
+func computeChanged(prev *database.ProblemVersion, curr *database.ProblemVersion) ([]string, map[string]FieldDiff) {
+	changedSet := make(map[string]struct{})
+	diffs := make(map[string]FieldDiff)
+
+	// Difficulty
+	if prev.ProblemDifficultyID != curr.ProblemDifficultyID {
+		changedSet["difficulty"] = struct{}{}
+		diffs["difficulty"] = FieldDiff{Before: prev.ProblemDifficultyID.String(), After: curr.ProblemDifficultyID.String()}
+	}
+
+	// Build maps of details by language
+	prevDetails := make(map[string]database.ProblemVersionDetail, len(prev.Details))
+	for _, d := range prev.Details {
+		prevDetails[d.Language] = d
+	}
+	currDetails := make(map[string]database.ProblemVersionDetail, len(curr.Details))
+	for _, d := range curr.Details {
+		currDetails[d.Language] = d
+	}
+
+	// Union of languages
+	langSet := make(map[string]struct{})
+	for l := range prevDetails {
+		langSet[l] = struct{}{}
+	}
+	for l := range currDetails {
+		langSet[l] = struct{}{}
+	}
+
+	// Compare each field across languages; pick en-US when available otherwise the first language
+	for l := range langSet {
+		pd, pok := prevDetails[l]
+		cd, cok := currDetails[l]
+		if !pok || !cok {
+			// A language was added or removed; mark all textual fields
+			changedSet["title"] = struct{}{}
+			changedSet["background"] = struct{}{}
+			changedSet["statement"] = struct{}{}
+			changedSet["input_format"] = struct{}{}
+			changedSet["output_format"] = struct{}{}
+			changedSet["note"] = struct{}{}
+			// Use available values for before/after (empty when missing)
+			diffs["title"] = FieldDiff{Before: pd.Title, After: cd.Title}
+			diffs["background"] = FieldDiff{Before: pd.Background, After: cd.Background}
+			diffs["statement"] = FieldDiff{Before: pd.Statement, After: cd.Statement}
+			diffs["input_format"] = FieldDiff{Before: pd.InputFormat, After: cd.InputFormat}
+			diffs["output_format"] = FieldDiff{Before: pd.OutputFormat, After: cd.OutputFormat}
+			diffs["note"] = FieldDiff{Before: pd.Note, After: cd.Note}
+			continue
+		}
+		if pd.Title != cd.Title {
+			changedSet["title"] = struct{}{}
+			diffs["title"] = FieldDiff{Before: pd.Title, After: cd.Title}
+		}
+		if pd.Background != cd.Background {
+			changedSet["background"] = struct{}{}
+			diffs["background"] = FieldDiff{Before: pd.Background, After: cd.Background}
+		}
+		if pd.Statement != cd.Statement {
+			changedSet["statement"] = struct{}{}
+			diffs["statement"] = FieldDiff{Before: pd.Statement, After: cd.Statement}
+		}
+		if pd.InputFormat != cd.InputFormat {
+			changedSet["input_format"] = struct{}{}
+			diffs["input_format"] = FieldDiff{Before: pd.InputFormat, After: cd.InputFormat}
+		}
+		if pd.OutputFormat != cd.OutputFormat {
+			changedSet["output_format"] = struct{}{}
+			diffs["output_format"] = FieldDiff{Before: pd.OutputFormat, After: cd.OutputFormat}
+		}
+		if pd.Note != cd.Note {
+			changedSet["note"] = struct{}{}
+			diffs["note"] = FieldDiff{Before: pd.Note, After: cd.Note}
+		}
+	}
+
+	// Examples: simple len or pairwise comparison
+	if len(prev.Examples) != len(curr.Examples) {
+		changedSet["examples"] = struct{}{}
+	} else {
+		for i := range prev.Examples {
+			if prev.Examples[i].Input != curr.Examples[i].Input || prev.Examples[i].Output != curr.Examples[i].Output {
+				changedSet["examples"] = struct{}{}
+				break
+			}
+		}
+	}
+	// Include examples as a simple text blob (line-per-example) when changed
+	if _, ok := changedSet["examples"]; ok {
+		before := ""
+		after := ""
+		for i, e := range prev.Examples {
+			before += "# Example " + itoa(i+1) + "\n" + "Input:\n" + e.Input + "\nOutput:\n" + e.Output + "\n\n"
+		}
+		for i, e := range curr.Examples {
+			after += "# Example " + itoa(i+1) + "\n" + "Input:\n" + e.Input + "\nOutput:\n" + e.Output + "\n\n"
+		}
+		diffs["examples"] = FieldDiff{Before: before, After: after}
+	}
+
+	// Convert set to slice with a stable order
+	order := []string{"title", "background", "statement", "input_format", "output_format", "note", "examples", "difficulty"}
+	out := make([]string, 0, len(changedSet))
+	for _, key := range order {
+		if _, ok := changedSet[key]; ok {
+			out = append(out, key)
+		}
+	}
+	return out, diffs
+}
+
+// tiny helper without importing strconv everywhere
+func itoa(i int) string {
+	// simple conversion (fast enough and self-contained)
+	if i == 0 {
+		return "0"
+	}
+	neg := false
+	if i < 0 {
+		neg = true
+		i = -i
+	}
+	buf := [20]byte{}
+	bp := len(buf)
+	for i > 0 {
+		bp--
+		buf[bp] = byte('0' + (i % 10))
+		i /= 10
+	}
+	if neg {
+		bp--
+		buf[bp] = '-'
+	}
+	return string(buf[bp:])
+}
+
 func (r *GormRepository) IsUserPartOfRoom(ctx context.Context, problemID uuid.UUID, userID uuid.UUID) (bool, error) {
 	db := database.GetDBFromContext(ctx, r.db)
 

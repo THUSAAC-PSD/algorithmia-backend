@@ -3,12 +3,13 @@ package constant
 type ProblemStatus string
 
 const (
-	ProblemStatusRejected           ProblemStatus = "rejected"
-	ProblemStatusPendingReview      ProblemStatus = "pending_review"
-	ProblemStatusNeedsRevision      ProblemStatus = "needs_revision"
-	ProblemStatusApprovedForTesting ProblemStatus = "approved_for_testing"
-	ProblemStatusAwaitingFinalCheck ProblemStatus = "awaiting_final_check"
-	ProblemStatusCompleted          ProblemStatus = "completed"
+	ProblemStatusRejected                ProblemStatus = "rejected"
+	ProblemStatusPendingReview           ProblemStatus = "pending_review"
+	ProblemStatusNeedsRevision           ProblemStatus = "needs_revision"
+	ProblemStatusPendingTesting          ProblemStatus = "pending_testing"
+	ProblemStatusTestingChangesRequested ProblemStatus = "testing_changes_requested"
+	ProblemStatusAwaitingFinalCheck      ProblemStatus = "awaiting_final_check"
+	ProblemStatusCompleted               ProblemStatus = "completed"
 )
 
 func FromStringToProblemStatus(status string) ProblemStatus {
@@ -19,8 +20,10 @@ func FromStringToProblemStatus(status string) ProblemStatus {
 		return ProblemStatusPendingReview
 	case string(ProblemStatusNeedsRevision):
 		return ProblemStatusNeedsRevision
-	case string(ProblemStatusApprovedForTesting):
-		return ProblemStatusApprovedForTesting
+	case string(ProblemStatusPendingTesting):
+		return ProblemStatusPendingTesting
+	case string(ProblemStatusTestingChangesRequested):
+		return ProblemStatusTestingChangesRequested
 	case string(ProblemStatusAwaitingFinalCheck):
 		return ProblemStatusAwaitingFinalCheck
 	case string(ProblemStatusCompleted):

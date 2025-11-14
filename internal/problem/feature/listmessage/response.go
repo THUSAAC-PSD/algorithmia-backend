@@ -23,6 +23,16 @@ type ResponseChatUserPayload struct {
 
 type ResponseChatSubmittedPayload struct {
 	Submitter contract.MessageUser `json:"submitter"`
+	// ChangedFields is present for edited messages to summarize what changed
+	ChangedFields []string `json:"changed_fields,omitempty"`
+	// Diffs contains per-field before/after content for edited messages
+	Diffs map[string]FieldDiff `json:"diffs,omitempty"`
+}
+
+// FieldDiff represents a simple textual before/after for a field
+type FieldDiff struct {
+	Before string `json:"before"`
+	After  string `json:"after"`
 }
 
 type ResponseChatReviewedPayload struct {

@@ -156,6 +156,7 @@ func (r *GormRepository) CreateProblemVersionFromDraft(
 		ProblemVersionID:    problemVersionID,
 		ProblemID:           problemID,
 		ProblemDifficultyID: draft.ProblemDifficulty.ProblemDifficultyID,
+		SubmittedBy:         draft.CreatorID,
 		Details:             make([]database.ProblemVersionDetail, len(draft.Details)),
 		Examples:            make([]database.ProblemVersionExample, len(draft.Examples)),
 		CreatedAt:           createdAt,

@@ -127,8 +127,9 @@ func (r *GormRepository) GetAllRelatedProblems(
 	result := make([]ResponseProblem, 0, len(flatProblems))
 	for _, problem := range flatProblems {
 		p := ResponseProblem{
-			ProblemID: problem.ProblemID,
-			Status:    constant.FromStringToProblemStatus(problem.ProblemStatus),
+			ProblemID:      problem.ProblemID,
+			ProblemDraftID: problem.ProblemDraftID,
+			Status:         constant.FromStringToProblemStatus(problem.ProblemStatus),
 			Creator: ResponseUser{
 				UserID:   problem.CreatorID,
 				Username: problem.CreatorUsername,
@@ -191,7 +192,6 @@ func (r *GormRepository) fetchRelatedProblems(
 		Joins("LEFT JOIN users reviewer_u ON reviewer_u.user_id = p.reviewer_id").
 		Joins("LEFT JOIN contests target_c ON target_c.contest_id = p.target_contest_id").
 		Joins("LEFT JOIN contests assigned_c ON assigned_c.contest_id = p.assigned_contest_id").
-		Joins("LEFT JOIN problem_testers pr ON pr.problem_problem_id = p.problem_id").
 		Joins(`
 			LEFT JOIN LATERAL (
 				SELECT
@@ -239,7 +239,13 @@ func (r *GormRepository) fetchRelatedProblems(
 
 	// Testing assignments
 	if showAssignedTesting {
-		visibilityPredicates = append(visibilityPredicates, "pr.user_user_id = ?")
+		visibilityPredicates = append(visibilityPredicates, `
+			EXISTS (
+				SELECT 1
+				FROM problem_testers ptr
+				WHERE ptr.problem_problem_id = p.problem_id AND ptr.user_user_id = ?
+			)
+		`)
 		visibilityArgs = append(visibilityArgs, userID)
 	}
 

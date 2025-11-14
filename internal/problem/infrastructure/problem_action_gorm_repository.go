@@ -18,7 +18,7 @@ import (
 
 type ProblemActionRepository interface {
 	GetLatestProblemVersionID(ctx context.Context, problemID uuid.UUID) (uuid.UUID, error)
-	CreateTestResult(
+	SaveTestResult(
 		ctx context.Context,
 		command *testproblem.Command,
 		testerID uuid.UUID,
@@ -35,6 +35,8 @@ type ProblemActionRepository interface {
 	GetProblem(ctx context.Context, problemID uuid.UUID) (dto.ProblemStatusAndVersion, error)
 	UpdateProblemStatus(ctx context.Context, problemID uuid.UUID, status constant.ProblemStatus) error
 	SetProblemDraftActive(ctx context.Context, problemDraftID uuid.UUID) error
+	GetProblemTesterIDs(ctx context.Context, problemID uuid.UUID) ([]uuid.UUID, error)
+	GetTestResultsForVersion(ctx context.Context, versionID uuid.UUID) ([]testproblem.ResultSummary, error)
 }
 
 type ProblemActionGormRepository struct {
@@ -70,7 +72,7 @@ func (r *ProblemActionGormRepository) GetLatestProblemVersionID(
 	return pv.ProblemVersionID, nil
 }
 
-func (r *ProblemActionGormRepository) CreateTestResult(
+func (r *ProblemActionGormRepository) SaveTestResult(
 	ctx context.Context,
 	command *testproblem.Command,
 	testerID uuid.UUID,
@@ -82,6 +84,26 @@ func (r *ProblemActionGormRepository) CreateTestResult(
 	resultID, err := uuid.NewV7()
 	if err != nil {
 		return uuid.Nil, errors.WrapIf(err, "failed to generate test result ID")
+	}
+
+	var existing database.ProblemTestResult
+	err = db.WithContext(ctx).
+		Where("tester_id = ? AND version_id = ?", testerID, versionID).
+		First(&existing).Error
+	if err == nil {
+		existing.Status = string(command.Status)
+		existing.Comment = command.Comment
+		existing.CreatedAt = createdAt
+
+		if err := db.WithContext(ctx).Save(&existing).Error; err != nil {
+			return uuid.Nil, errors.WrapIf(err, "failed to update problem test result")
+		}
+
+		return existing.ProblemTestResultID, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return uuid.Nil, errors.WrapIf(err, "failed to get existing problem test result")
 	}
 
 	if err := db.WithContext(ctx).
@@ -201,4 +223,54 @@ func (r *ProblemActionGormRepository) SetProblemDraftActive(ctx context.Context,
 	}
 
 	return nil
+}
+
+func (r *ProblemActionGormRepository) GetProblemTesterIDs(ctx context.Context, problemID uuid.UUID) ([]uuid.UUID, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
+	type testerRow struct {
+		TesterID uuid.UUID
+	}
+
+	var rows []testerRow
+	if err := db.WithContext(ctx).
+		Table("problem_testers").
+		Select("user_id AS tester_id").
+		Where("problem_id = ?", problemID).
+		Scan(&rows).Error; err != nil {
+		return nil, errors.WrapIf(err, "failed to get problem testers")
+	}
+
+	testerIDs := make([]uuid.UUID, 0, len(rows))
+	for _, row := range rows {
+		testerIDs = append(testerIDs, row.TesterID)
+	}
+
+	return testerIDs, nil
+}
+
+func (r *ProblemActionGormRepository) GetTestResultsForVersion(
+	ctx context.Context,
+	versionID uuid.UUID,
+) ([]testproblem.ResultSummary, error) {
+	db := database.GetDBFromContext(ctx, r.db)
+
+	var rows []database.ProblemTestResult
+	if err := db.WithContext(ctx).
+		Model(&database.ProblemTestResult{}).
+		Select("tester_id", "status").
+		Where("version_id = ?", versionID).
+		Find(&rows).Error; err != nil {
+		return nil, errors.WrapIf(err, "failed to get problem test results")
+	}
+
+	summaries := make([]testproblem.ResultSummary, len(rows))
+	for i, row := range rows {
+		summaries[i] = testproblem.ResultSummary{
+			TesterID: row.TesterID,
+			Status:   row.Status,
+		}
+	}
+
+	return summaries, nil
 }

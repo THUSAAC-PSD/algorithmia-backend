@@ -124,7 +124,7 @@ func (r *GormRepository) VerifyActiveProblemDraftCreator(
 	var count int64
 	if err := db.WithContext(ctx).
 		Model(&database.ProblemDraft{}).
-		Where("problem_draft_id = ? AND creator_id = ? AND is_active = ?", problemDraftID, creatorID, true).
+		Where("problem_draft_id = ? AND creator_id = ?", problemDraftID, creatorID).
 		Count(&count).Error; err != nil {
 		return false, errors.WrapIf(err, "failed to count problem drafts")
 	}

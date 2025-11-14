@@ -26,6 +26,7 @@ type ResponseContest struct {
 
 type ResponseProblem struct {
 	ProblemID         uuid.UUID              `json:"problem_id"`
+	ProblemDraftID    uuid.UUID              `json:"problem_draft_id"`
 	Titles            []ResponseProblemTitle `json:"title"`
 	Status            constant.ProblemStatus `json:"status"`
 	Creator           ResponseUser           `json:"creator"`

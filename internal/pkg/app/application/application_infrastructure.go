@@ -59,6 +59,13 @@ func (a *Application) mapEndpoints() error {
 
 func (a *Application) migrateDatabase() error {
 	return a.ResolveDependencyFunc(func(g *gorm.DB) error {
+		// Drop legacy unique index to allow multiple tester results per version.
+		if g.Migrator().HasIndex(&database.ProblemTestResult{}, "idx_problem_test_results_version_id") {
+			if err := g.Migrator().DropIndex(&database.ProblemTestResult{}, "idx_problem_test_results_version_id"); err != nil {
+				return errors.WrapIf(err, "failed to drop legacy test result index")
+			}
+		}
+
 		err := g.AutoMigrate(
 			&database.User{},
 			&database.Role{},
@@ -82,6 +89,10 @@ func (a *Application) migrateDatabase() error {
 		)
 		if err != nil {
 			return err
+		}
+
+		if err := a.normalizeProblemStatuses(g); err != nil {
+			return errors.WrapIf(err, "failed to normalize problem statuses")
 		}
 
 		return nil
@@ -354,6 +365,29 @@ func (a *Application) seedRoles() error {
 
 		return nil
 	})
+}
+
+func (a *Application) normalizeProblemStatuses(g *gorm.DB) error {
+	type statusUpdate struct {
+		from string
+		to   constant.ProblemStatus
+	}
+
+	updates := []statusUpdate{
+		{from: "review_changes_requested", to: constant.ProblemStatusNeedsRevision},
+		{from: "needs_changes", to: constant.ProblemStatusNeedsRevision},
+		{from: "approved_for_testing", to: constant.ProblemStatusPendingTesting},
+	}
+
+	for _, update := range updates {
+		if err := g.Model(&database.Problem{}).
+			Where("status = ?", update.from).
+			Update("status", update.to).Error; err != nil {
+			return errors.WrapIf(err, "failed to normalize problem statuses")
+		}
+	}
+
+	return nil
 }
 
 func (a *Application) mustGenerateUUID(l logger.Logger) uuid.UUID {

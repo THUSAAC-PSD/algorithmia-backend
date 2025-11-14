@@ -42,8 +42,8 @@ func (r *GormRepository) GetProblem(
 		Preload("ProblemVersions.Examples").
 		Preload("ProblemVersions.Review").
 		Preload("ProblemVersions.Review.Reviewer").
-		Preload("ProblemVersions.TestResult").
-		Preload("ProblemVersions.TestResult.Tester").
+		Preload("ProblemVersions.TestResults").
+		Preload("ProblemVersions.TestResults.Tester").
 		Preload("ProblemVersions.ProblemDifficulty").
 		Preload("ProblemVersions.ProblemDifficulty.DisplayNames").
 		Preload("TargetContest").
@@ -59,6 +59,7 @@ func (r *GormRepository) GetProblem(
 
 	result := &ResponseProblem{
 		ProblemID:       p.ProblemID,
+		ProblemDraftID:  p.ProblemDraftID,
 		LatestVersionID: p.ProblemVersions[0].ProblemVersionID,
 		Versions:        make([]ResponseProblemVersion, 0, len(p.ProblemVersions)),
 		Status:          constant.FromStringToProblemStatus(p.Status),
@@ -77,6 +78,7 @@ func (r *GormRepository) GetProblem(
 			ProblemDifficulty: dto.FromGormProblemDifficulty(version.ProblemDifficulty),
 			Details:           make([]ResponseProblemDetail, 0, len(version.Details)),
 			Examples:          make([]ResponseProblemExample, 0, len(version.Examples)),
+			TestResults:       make([]ResponseTestResult, 0, len(version.TestResults)),
 			CreatedAt:         version.CreatedAt,
 		}
 
@@ -89,13 +91,13 @@ func (r *GormRepository) GetProblem(
 			}
 		}
 
-		if version.TestResult != nil {
-			v.TestResult = &ResponseTestResult{
-				TesterID:  version.TestResult.Tester.UserID,
-				Comment:   version.TestResult.Comment,
-				Status:    version.TestResult.Status,
-				CreatedAt: version.TestResult.CreatedAt,
-			}
+		for _, testResult := range version.TestResults {
+			v.TestResults = append(v.TestResults, ResponseTestResult{
+				TesterID:  testResult.Tester.UserID,
+				Comment:   testResult.Comment,
+				Status:    testResult.Status,
+				CreatedAt: testResult.CreatedAt,
+			})
 		}
 
 		for _, detail := range version.Details {

@@ -57,8 +57,6 @@ func (e *Endpoint) handle() echo.HandlerFunc {
 				WithInternal(err)
 		} else if errors.Is(err, ErrProblemDraftNotActive) {
 			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit is not active")
-		} else if errors.Is(err, ErrProblemDoesntNeedRevision) {
-			return httperror.New(http.StatusUnprocessableEntity, "The problem draft you're trying to submit does not need revision")
 		} else if errors.Is(err, ErrNotCreator) {
 			return httperror.New(http.StatusForbidden, "You are not the creator of this problem draft")
 		} else if errors.Is(err, ErrMissingProblemDifficulty) {

@@ -11,6 +11,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/websocket"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/assigntesters"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/checkoutdraft"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/getproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listmessage"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/problem/feature/listproblem"
@@ -173,6 +174,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide mark complete endpoint")
 	}
 
+	if err := b.Container.Provide(checkoutdraft.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide checkout draft endpoint")
+	}
+
 	if err := b.Container.Provide(listproblem.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide list problem endpoint")
 	}
@@ -221,6 +226,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		testProblemEndpoint *testproblem.Endpoint,
 		assignTesterEndpoint *assigntesters.Endpoint,
 		markCompleteEndpoint *markcomplete.Endpoint,
+		checkoutDraftEndpoint *checkoutdraft.Endpoint,
 		listProblemEndpoint *listproblem.Endpoint,
 		getProblemEndpoint *getproblem.Endpoint,
 		sendMessageEndpoint *sendmessage.Endpoint,
@@ -249,6 +255,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			testProblemEndpoint,
 			assignTesterEndpoint,
 			markCompleteEndpoint,
+			checkoutDraftEndpoint,
 			listProblemEndpoint,
 			getProblemEndpoint,
 			sendMessageEndpoint,
@@ -318,6 +325,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(submitproblemdraft.NewGormRepository,
 		dig.As(new(submitproblemdraft.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide submit problem draft repository")
+	}
+
+	if err := b.Container.Provide(checkoutdraft.NewGormRepository,
+		dig.As(new(checkoutdraft.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide checkout draft repository")
 	}
 
 	if err := b.Container.Provide(problemInfra.NewProblemActionGormRepository,

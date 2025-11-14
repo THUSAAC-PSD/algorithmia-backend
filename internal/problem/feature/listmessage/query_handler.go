@@ -23,6 +23,7 @@ type Query struct {
 
 type Repository interface {
 	IsUserPartOfRoom(ctx context.Context, problemID uuid.UUID, userID uuid.UUID) (bool, error)
+	GetSubmissionMessages(ctx context.Context, problemID uuid.UUID) ([]ResponseChatMessage, error)
 	GetUserChatMessages(ctx context.Context, problemID uuid.UUID) ([]ResponseChatMessage, error)
 	GetReviewedMessages(ctx context.Context, problemID uuid.UUID) ([]ResponseChatMessage, error)
 	GetTestedMessages(ctx context.Context, problemID uuid.UUID) ([]ResponseChatMessage, error)
@@ -57,12 +58,19 @@ func (q *QueryHandler) Handle(ctx context.Context, query *Query) (*Response, err
 		return nil, errors.WithStack(ErrUserNotPartOfRoom)
 	}
 
+	var submissionMessages []ResponseChatMessage
 	var userMessages []ResponseChatMessage
 	var reviewedMessages []ResponseChatMessage
 	var testedMessages []ResponseChatMessage
 	var completedMessage *ResponseChatMessage
 
 	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		var err error
+		submissionMessages, err = q.repo.GetSubmissionMessages(ctx, query.ProblemID)
+		return errors.WrapIf(err, "failed to get submission messages")
+	})
+
 	g.Go(func() error {
 		var err error
 		userMessages, err = q.repo.GetUserChatMessages(ctx, query.ProblemID)
@@ -91,7 +99,8 @@ func (q *QueryHandler) Handle(ctx context.Context, query *Query) (*Response, err
 		return nil, errors.WrapIf(err, "failed to get messages")
 	}
 
-	messages := make([]ResponseChatMessage, 0, len(userMessages)+len(reviewedMessages)+len(testedMessages)+1)
+	messages := make([]ResponseChatMessage, 0, len(submissionMessages)+len(userMessages)+len(reviewedMessages)+len(testedMessages)+1)
+	messages = append(messages, submissionMessages...)
 	messages = append(messages, userMessages...)
 	messages = append(messages, reviewedMessages...)
 	messages = append(messages, testedMessages...)

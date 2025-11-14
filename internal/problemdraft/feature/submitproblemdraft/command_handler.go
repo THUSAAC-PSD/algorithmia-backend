@@ -17,12 +17,11 @@ import (
 )
 
 var (
-	ErrProblemDraftNotFound      = errors.New("problem draft not found")
-	ErrContestNotFound           = errors.New("contest not found")
-	ErrProblemDraftNotActive     = errors.New("problem draft is not active")
-	ErrProblemDoesntNeedRevision = errors.New("problem does not need revision")
-	ErrNotCreator                = errors.New("not the creator of the problem draft")
-	ErrMissingProblemDifficulty  = errors.New("problem draft missing difficulty")
+	ErrProblemDraftNotFound     = errors.New("problem draft not found")
+	ErrContestNotFound          = errors.New("contest not found")
+	ErrProblemDraftNotActive    = errors.New("problem draft is not active")
+	ErrNotCreator               = errors.New("not the creator of the problem draft")
+	ErrMissingProblemDifficulty = errors.New("problem draft missing difficulty")
 )
 
 type Repository interface {
@@ -100,13 +99,24 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 		return nil, errors.WithStack(ErrMissingProblemDifficulty)
 	}
 
-	if problemDraft.SubmittedProblemID.Valid {
+	isResubmission := problemDraft.SubmittedProblemID.Valid
+	targetStatus := constant.ProblemStatusPendingReview
+
+	if isResubmission {
 		status, err := h.repo.GetProblemStatus(ctx, problemDraft.SubmittedProblemID.UUID)
 		if err != nil {
 			return nil, errors.WrapIf(err, "failed to get problem status")
-		} else if status != nil && *status != constant.ProblemStatusNeedsRevision {
-			// If the status is nil, it means the problem is not yet created, so we don't need to check the status.
-			return nil, errors.WithStack(ErrProblemDoesntNeedRevision)
+		}
+
+		if status != nil {
+			switch *status {
+			case constant.ProblemStatusTestingChangesRequested:
+				targetStatus = constant.ProblemStatusPendingTesting
+			case constant.ProblemStatusNeedsRevision:
+				targetStatus = constant.ProblemStatusPendingReview
+			default:
+				targetStatus = *status
+			}
 		}
 	}
 
@@ -122,7 +132,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			ctx,
 			problemDraft,
 			command.TargetContestID,
-			constant.ProblemStatusPendingReview,
+			targetStatus,
 			timestamp,
 		)
 		if err != nil {
@@ -139,11 +149,19 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to get user details")
 		}
 
-		if err := h.broadcaster.BroadcastSubmittedMessage(problemID, contract.MessageUser{
+		broadcastUser := contract.MessageUser{
 			UserID:   user.UserID,
 			Username: details.Username,
-		}, timestamp); err != nil {
-			return nil, errors.WrapIf(err, "failed to broadcast submitted message")
+		}
+
+		if isResubmission {
+			if err := h.broadcaster.BroadcastEditedMessage(problemID, broadcastUser, timestamp); err != nil {
+				return nil, errors.WrapIf(err, "failed to broadcast edited message")
+			}
+		} else {
+			if err := h.broadcaster.BroadcastSubmittedMessage(problemID, broadcastUser, timestamp); err != nil {
+				return nil, errors.WrapIf(err, "failed to broadcast submitted message")
+			}
 		}
 
 		return &Response{

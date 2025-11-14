@@ -98,6 +98,36 @@ func (b *WsBroadcaster) BroadcastSubmittedMessage(
 	return nil
 }
 
+func (b *WsBroadcaster) BroadcastEditedMessage(
+	problemID uuid.UUID,
+	editor contract.MessageUser,
+	timestamp time.Time,
+) error {
+	b.l.Infow("WS Broadcaster: Broadcasting edited message", map[string]interface{}{
+		"problem_id": problemID,
+		"editor_id":  editor.UserID,
+	})
+
+	payload := SubmittedMessageServerPayload{
+		ProblemID: problemID,
+		Submitter: UserServerPayload{
+			ID:       editor.UserID,
+			Username: editor.Username,
+		},
+		Timestamp: timestamp,
+	}
+
+	envelope := OutgoingMessageEnvelope{
+		Type:    contract.MessageTypeEdited,
+		Payload: payload,
+	}
+
+	if err := b.broadcastEnvelope(problemID, &envelope); err != nil {
+		return errors.WrapIf(err, "failed to broadcast edited message")
+	}
+	return nil
+}
+
 func (b *WsBroadcaster) BroadcastReviewedMessage(
 	problemID uuid.UUID,
 	reviewer contract.MessageUser,

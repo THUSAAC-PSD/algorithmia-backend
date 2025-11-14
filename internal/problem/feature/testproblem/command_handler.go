@@ -2,6 +2,7 @@ package testproblem
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/constant"
@@ -16,11 +17,19 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrProblemNotApprovedForTesting = errors.New("problem not approved for testing")
+var (
+	ErrProblemNotPendingTesting = errors.New("problem is not pending testing")
+	ErrTesterNotAssigned        = errors.New("tester is not assigned to this problem")
+)
+
+type ResultSummary struct {
+	TesterID uuid.UUID
+	Status   string
+}
 
 type Repository interface {
 	GetLatestProblemVersionID(ctx context.Context, problemID uuid.UUID) (uuid.UUID, error)
-	CreateTestResult(
+	SaveTestResult(
 		ctx context.Context,
 		command *Command,
 		testerID uuid.UUID,
@@ -30,6 +39,8 @@ type Repository interface {
 	GetProblem(ctx context.Context, problemID uuid.UUID) (dto.ProblemStatusAndVersion, error)
 	UpdateProblemStatus(ctx context.Context, problemID uuid.UUID, status constant.ProblemStatus) error
 	SetProblemDraftActive(ctx context.Context, problemDraftID uuid.UUID) error
+	GetProblemTesterIDs(ctx context.Context, problemID uuid.UUID) ([]uuid.UUID, error)
+	GetTestResultsForVersion(ctx context.Context, versionID uuid.UUID) ([]ResultSummary, error)
 }
 
 type CommandHandler struct {
@@ -73,8 +84,6 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 		return nil, errors.WrapIf(err, "failed to get user from auth provider")
 	}
 
-	// TODO: check if assigned to this problem or not
-
 	uow := h.uowFactory.New()
 	return uowhelper.DoWithResult(ctx, uow, h.l, func(ctx context.Context) (*Response, error) {
 		problem, err := h.repo.GetProblem(ctx, command.ProblemID)
@@ -82,8 +91,21 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 			return nil, errors.WrapIf(err, "failed to get problem")
 		}
 
-		if problem.Status != constant.ProblemStatusApprovedForTesting {
-			return nil, errors.WithStack(ErrProblemNotApprovedForTesting)
+		if problem.Status != constant.ProblemStatusPendingTesting {
+			return nil, errors.WithStack(ErrProblemNotPendingTesting)
+		}
+
+		testerIDs, err := h.repo.GetProblemTesterIDs(ctx, command.ProblemID)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to get problem testers")
+		}
+
+		if len(testerIDs) == 0 {
+			return nil, errors.WithStack(ErrTesterNotAssigned)
+		}
+
+		if !slices.ContainsFunc(testerIDs, func(id uuid.UUID) bool { return id == user.UserID }) {
+			return nil, errors.WithStack(ErrTesterNotAssigned)
 		}
 
 		versionID, err := h.repo.GetLatestProblemVersionID(ctx, command.ProblemID)
@@ -93,24 +115,56 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 
 		timestamp := time.Now()
 
-		resultID, err := h.repo.CreateTestResult(ctx, command, user.UserID, versionID, timestamp)
+		resultID, err := h.repo.SaveTestResult(ctx, command, user.UserID, versionID, timestamp)
 		if err != nil {
 			return nil, errors.WrapIf(err, "failed to create test result")
 		}
 
-		var problemStatus constant.ProblemStatus
+		newStatus := problem.Status
 		switch command.Status {
 		case StatusPassed:
-			problemStatus = constant.ProblemStatusAwaitingFinalCheck
+			results, err := h.repo.GetTestResultsForVersion(ctx, versionID)
+			if err != nil {
+				return nil, errors.WrapIf(err, "failed to get test results for version")
+			}
+
+			allPassed := true
+			passedMap := make(map[uuid.UUID]struct{}, len(results))
+			for _, result := range results {
+				if result.Status == string(StatusFailed) {
+					allPassed = false
+					break
+				}
+				if result.Status == string(StatusPassed) {
+					passedMap[result.TesterID] = struct{}{}
+				}
+			}
+
+			if allPassed {
+				for _, testerID := range testerIDs {
+					if _, ok := passedMap[testerID]; !ok {
+						allPassed = false
+						break
+					}
+				}
+			}
+
+			if allPassed {
+				newStatus = constant.ProblemStatusAwaitingFinalCheck
+			} else {
+				newStatus = constant.ProblemStatusPendingTesting
+			}
 		case StatusFailed:
-			problemStatus = constant.ProblemStatusNeedsRevision
+			newStatus = constant.ProblemStatusTestingChangesRequested
 			if err := h.repo.SetProblemDraftActive(ctx, problem.DraftID); err != nil {
 				return nil, errors.WrapIf(err, "failed to set problem draft active")
 			}
 		}
 
-		if err := h.repo.UpdateProblemStatus(ctx, command.ProblemID, problemStatus); err != nil {
-			return nil, errors.WrapIf(err, "failed to update problem status")
+		if newStatus != problem.Status {
+			if err := h.repo.UpdateProblemStatus(ctx, command.ProblemID, newStatus); err != nil {
+				return nil, errors.WrapIf(err, "failed to update problem status")
+			}
 		}
 
 		details, err := h.authProvider.MustGetUserDetails(ctx, user.UserID)

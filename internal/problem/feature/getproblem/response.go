@@ -59,12 +59,13 @@ type ResponseProblemVersion struct {
 	Details           []ResponseProblemDetail  `json:"details"`
 	Examples          []ResponseProblemExample `json:"examples"`
 	Review            *ResponseReview          `json:"review"`
-	TestResult        *ResponseTestResult      `json:"test_result"`
+	TestResults       []ResponseTestResult     `json:"test_results"`
 	CreatedAt         time.Time                `json:"created_at"`
 }
 
 type ResponseProblem struct {
 	ProblemID       uuid.UUID                `json:"problem_id"`
+	ProblemDraftID  uuid.UUID                `json:"problem_draft_id"`
 	LatestVersionID uuid.UUID                `json:"latest_version_id"`
 	Versions        []ResponseProblemVersion `json:"versions"`
 	Status          constant.ProblemStatus   `json:"status"`

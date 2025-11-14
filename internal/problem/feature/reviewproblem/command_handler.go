@@ -107,7 +107,7 @@ func (h *CommandHandler) Handle(ctx context.Context, command *Command) (*Respons
 		var problemStatus constant.ProblemStatus
 		switch command.Decision {
 		case DecisionApprove:
-			problemStatus = constant.ProblemStatusApprovedForTesting
+			problemStatus = constant.ProblemStatusPendingTesting
 		case DecisionReject:
 			problemStatus = constant.ProblemStatusRejected
 		case DecisionNeedsRevision:
