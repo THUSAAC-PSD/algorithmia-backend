@@ -52,22 +52,29 @@ func (q *QueryHandler) Handle(ctx context.Context, onlyShowCompleted bool) (*Res
 		showAssignedTesting  = false
 	)
 
-	for _, p := range details.Permissions {
-		if details.IsSuperAdmin || p == constant.PermissionProblemListAll {
-			showAll = true
-			break
-		}
+	if details.IsSuperAdmin {
+		showAll = true
+		showCreated = true
+		showAllPendingReview = true
+		showAssignedTesting = true
+	} else {
+		for _, p := range details.Permissions {
+			if p == constant.PermissionProblemListAll {
+				showAll = true
+				break
+			}
 
-		if p == constant.PermissionProblemListCreatedOwn {
-			showCreated = true
-		}
+			if p == constant.PermissionProblemListCreatedOwn {
+				showCreated = true
+			}
 
-		if p == constant.PermissionProblemListAwaitingReviewAll {
-			showAllPendingReview = true
-		}
+			if p == constant.PermissionProblemListAwaitingReviewAll {
+				showAllPendingReview = true
+			}
 
-		if p == constant.PermissionProblemListAssignedTest {
-			showAssignedTesting = true
+			if p == constant.PermissionProblemListAssignedTest {
+				showAssignedTesting = true
+			}
 		}
 	}
 
