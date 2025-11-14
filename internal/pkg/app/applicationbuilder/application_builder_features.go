@@ -32,6 +32,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/listtester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/manageuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/verifyemail"
@@ -124,6 +125,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 	if err := b.Container.Provide(getcurrentuser.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide get current user endpoint")
+	}
+
+	if err := b.Container.Provide(manageuser.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide manage user endpoint")
 	}
 
 	if err := b.Container.Provide(createcontest.NewEndpoint); err != nil {
@@ -234,6 +239,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		listTesterEndpoint *listtester.Endpoint,
 		assignProblemEndpoint *assignproblem.Endpoint,
 		unassignProblemEndpoint *unassignproblem.Endpoint,
+		manageUserEndpoint *manageuser.Endpoint,
 	) []contract.Endpoint {
 		return []contract.Endpoint{
 			websocketEndpoint,
@@ -263,6 +269,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			listTesterEndpoint,
 			assignProblemEndpoint,
 			unassignProblemEndpoint,
+			manageUserEndpoint,
 		}
 	}); err != nil {
 		return errors.WrapIf(err, "failed to provide endpoint array")
@@ -387,6 +394,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(unassignproblem.NewGormRepository,
 		dig.As(new(unassignproblem.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide unassign problem repository")
+	}
+
+	if err := b.Container.Provide(manageuser.NewGormRepository,
+		dig.As(new(manageuser.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide manage user repository")
 	}
 
 	return nil

@@ -24,6 +24,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/listtester"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/login"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/logout"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/manageuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/verifyemail"
@@ -59,6 +60,18 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(getcurrentuser.NewQueryHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide get current user query handler")
+	}
+
+	if err := a.Container.Provide(manageuser.NewListQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list user query handler")
+	}
+
+	if err := a.Container.Provide(manageuser.NewUpdateCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide manage user update command handler")
+	}
+
+	if err := a.Container.Provide(manageuser.NewDeleteCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide manage user delete command handler")
 	}
 
 	if err := a.Container.Provide(createcontest.NewCommandHandler); err != nil {
