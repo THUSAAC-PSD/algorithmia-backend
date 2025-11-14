@@ -235,8 +235,8 @@ func (r *ProblemActionGormRepository) GetProblemTesterIDs(ctx context.Context, p
 	var rows []testerRow
 	if err := db.WithContext(ctx).
 		Table("problem_testers").
-		Select("user_id AS tester_id").
-		Where("problem_id = ?", problemID).
+		Select("user_user_id AS tester_id").
+		Where("problem_problem_id = ?", problemID).
 		Scan(&rows).Error; err != nil {
 		return nil, errors.WrapIf(err, "failed to get problem testers")
 	}
