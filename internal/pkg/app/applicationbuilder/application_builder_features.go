@@ -5,6 +5,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/assignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/createcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/deletecontest"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listassignedproblems"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/listcontest"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/contest/feature/unassignproblem"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/pkg/contract"
@@ -211,6 +212,14 @@ func (b *ApplicationBuilder) addRoutes() error {
 		return errors.WrapIf(err, "failed to provide unassign problem endpoint")
 	}
 
+	if err := b.Container.Provide(listassignedproblems.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide list assigned problems endpoint")
+	}
+
+	if err := b.Container.Provide(listassignedproblems.NewQueryHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide list assigned problems query handler")
+	}
+
 	if err := b.Container.Provide(func(
 		websocketEndpoint *websocket.Endpoint,
 		registerEndpoint *register.Endpoint,
@@ -222,6 +231,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		createContestEndpoint *createcontest.Endpoint,
 		listContestEndpoint *listcontest.Endpoint,
 		deleteContestEndpoint *deletecontest.Endpoint,
+		listAssignedProblemsEndpoint *listassignedproblems.Endpoint,
 		listProblemDifficultyEndpoint *listproblemdifficulty.Endpoint,
 		upsertProblemDraftEndpoint *upsertproblemdraft.Endpoint,
 		listProblemDraftEndpoint *listproblemdraft.Endpoint,
@@ -252,6 +262,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			createContestEndpoint,
 			listContestEndpoint,
 			deleteContestEndpoint,
+			listAssignedProblemsEndpoint,
 			listProblemDifficultyEndpoint,
 			upsertProblemDraftEndpoint,
 			listProblemDraftEndpoint,
@@ -312,6 +323,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(deletecontest.NewGormRepository,
 		dig.As(new(deletecontest.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide delete contest repository")
+	}
+
+	if err := b.Container.Provide(listassignedproblems.NewGormRepository,
+		dig.As(new(listassignedproblems.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide list assigned problems repository")
 	}
 
 	if err := b.Container.Provide(listproblemdifficulty.NewGormRepository,
