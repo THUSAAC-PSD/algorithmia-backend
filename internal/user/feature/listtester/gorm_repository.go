@@ -26,7 +26,7 @@ func (r *GormRepository) GetTesters(ctx context.Context) ([]ResponseTester, erro
 	var users []database.User
 	if err := db.WithContext(ctx).
 		Table("users u").
-		Select("u.user_id, u.username, COALESCE(u.display_name, u.username) as display_name").
+		Select("u.user_id, u.username, COALESCE(NULLIF(u.display_name, ''), u.username) as display_name").
 		Joins("LEFT JOIN user_roles ur ON ur.user_user_id = u.user_id").
 		Joins("LEFT JOIN roles r ON r.role_id = ur.role_role_id").
 		Joins("LEFT JOIN role_permissions rp ON rp.role_role_id = ur.role_role_id").
