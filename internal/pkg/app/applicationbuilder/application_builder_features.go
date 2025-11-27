@@ -36,6 +36,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/manageuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/resetpassword"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/verifyemail"
 	userInfra "github.com/THUSAAC-PSD/algorithmia-backend/internal/user/infrastructure"
 
@@ -55,7 +56,8 @@ func (b *ApplicationBuilder) AddFeatures() error {
 	if err := b.Container.Provide(userInfra.NewArgonPasswordHasher,
 		dig.As(new(register.PasswordHasher)),
 		dig.As(new(requestemailverification.PasswordHasher)),
-		dig.As(new(login.PasswordChecker))); err != nil {
+		dig.As(new(login.PasswordChecker)),
+		dig.As(new(resetpassword.PasswordHasher))); err != nil {
 		return errors.WrapIf(err, "failed to provide argon password hasher")
 	}
 
@@ -126,6 +128,10 @@ func (b *ApplicationBuilder) addRoutes() error {
 
 	if err := b.Container.Provide(getcurrentuser.NewEndpoint); err != nil {
 		return errors.WrapIf(err, "failed to provide get current user endpoint")
+	}
+
+	if err := b.Container.Provide(resetpassword.NewEndpoint); err != nil {
+		return errors.WrapIf(err, "failed to provide reset password endpoint")
 	}
 
 	if err := b.Container.Provide(manageuser.NewEndpoint); err != nil {
@@ -228,6 +234,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 		loginEndpoint *login.Endpoint,
 		logoutEndpoint *logout.Endpoint,
 		getCurrentUserEndpoint *getcurrentuser.Endpoint,
+		resetPasswordEndpoint *resetpassword.Endpoint,
 		createContestEndpoint *createcontest.Endpoint,
 		listContestEndpoint *listcontest.Endpoint,
 		deleteContestEndpoint *deletecontest.Endpoint,
@@ -259,6 +266,7 @@ func (b *ApplicationBuilder) addRoutes() error {
 			loginEndpoint,
 			logoutEndpoint,
 			getCurrentUserEndpoint,
+			resetPasswordEndpoint,
 			createContestEndpoint,
 			listContestEndpoint,
 			deleteContestEndpoint,
@@ -410,6 +418,11 @@ func (b *ApplicationBuilder) addRepositories() error {
 	if err := b.Container.Provide(unassignproblem.NewGormRepository,
 		dig.As(new(unassignproblem.Repository))); err != nil {
 		return errors.WrapIf(err, "failed to provide unassign problem repository")
+	}
+
+	if err := b.Container.Provide(resetpassword.NewGormRepository,
+		dig.As(new(resetpassword.Repository))); err != nil {
+		return errors.WrapIf(err, "failed to provide reset password repository")
 	}
 
 	if err := b.Container.Provide(manageuser.NewGormRepository,

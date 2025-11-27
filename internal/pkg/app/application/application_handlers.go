@@ -27,6 +27,7 @@ import (
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/manageuser"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/register"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/requestemailverification"
+	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/resetpassword"
 	"github.com/THUSAAC-PSD/algorithmia-backend/internal/user/feature/verifyemail"
 
 	"emperror.dev/errors"
@@ -60,6 +61,10 @@ func (a *Application) AddHandlers() error {
 
 	if err := a.Container.Provide(getcurrentuser.NewQueryHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide get current user query handler")
+	}
+
+	if err := a.Container.Provide(resetpassword.NewCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide reset password command handler")
 	}
 
 	if err := a.Container.Provide(manageuser.NewListQueryHandler); err != nil {
