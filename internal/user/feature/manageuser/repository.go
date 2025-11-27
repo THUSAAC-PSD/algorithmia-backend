@@ -18,4 +18,5 @@ type Repository interface {
 	UpdateUser(ctx context.Context, userID uuid.UUID, username, email string, roles []database.Role) (*ResponseUser, error)
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
 	CountSuperAdmins(ctx context.Context) (int64, error)
+	UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
 }

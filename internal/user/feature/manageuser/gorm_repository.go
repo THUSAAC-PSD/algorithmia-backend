@@ -234,6 +234,27 @@ func (r *GormRepository) CountSuperAdmins(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
+func (r *GormRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
+	db := database.GetDBFromContext(ctx, r.db)
+
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var user database.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Select("user_id").
+			Where("user_id = ?", userID).
+			First(&user).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&user).
+			Update("hashed_password", hashedPassword).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 func toResponseUser(user database.User) ResponseUser {
 	roles := make([]string, 0, len(user.Roles))
 	for _, role := range user.Roles {

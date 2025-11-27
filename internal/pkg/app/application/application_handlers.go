@@ -79,6 +79,10 @@ func (a *Application) AddHandlers() error {
 		return errors.WrapIf(err, "failed to provide manage user delete command handler")
 	}
 
+	if err := a.Container.Provide(manageuser.NewResetPasswordCommandHandler); err != nil {
+		return errors.WrapIf(err, "failed to provide manage user reset password command handler")
+	}
+
 	if err := a.Container.Provide(createcontest.NewCommandHandler); err != nil {
 		return errors.WrapIf(err, "failed to provide create contest command handler")
 	}

@@ -13,9 +13,10 @@ import (
 
 type Endpoint struct {
 	*user.EndpointParams
-	listHandler   *ListQueryHandler
-	updateHandler *UpdateCommandHandler
-	deleteHandler *DeleteCommandHandler
+	listHandler      *ListQueryHandler
+	updateHandler    *UpdateCommandHandler
+	deleteHandler    *DeleteCommandHandler
+	resetPassHandler *ResetPasswordCommandHandler
 }
 
 func NewEndpoint(
@@ -23,12 +24,14 @@ func NewEndpoint(
 	listHandler *ListQueryHandler,
 	updateHandler *UpdateCommandHandler,
 	deleteHandler *DeleteCommandHandler,
+	resetPassHandler *ResetPasswordCommandHandler,
 ) *Endpoint {
 	return &Endpoint{
-		EndpointParams: params,
-		listHandler:    listHandler,
-		updateHandler:  updateHandler,
-		deleteHandler:  deleteHandler,
+		EndpointParams:   params,
+		listHandler:      listHandler,
+		updateHandler:    updateHandler,
+		deleteHandler:    deleteHandler,
+		resetPassHandler: resetPassHandler,
 	}
 }
 
@@ -36,6 +39,7 @@ func (e *Endpoint) MapEndpoint() {
 	e.UsersGroup.GET("", e.handleList())
 	e.UsersGroup.PUT("/:user_id", e.handleUpdate())
 	e.UsersGroup.DELETE("/:user_id", e.handleDelete())
+	e.UsersGroup.POST("/:user_id/reset-password", e.handleResetPassword())
 }
 
 func (e *Endpoint) handleList() echo.HandlerFunc {
@@ -126,5 +130,35 @@ func (e *Endpoint) handleDelete() echo.HandlerFunc {
 		}
 
 		return ctx.NoContent(http.StatusNoContent)
+	}
+}
+
+func (e *Endpoint) handleResetPassword() echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		command := &ResetPasswordCommand{}
+		if err := ctx.Bind(command); err != nil {
+			return httperror.New(http.StatusBadRequest, "Invalid request")
+		}
+
+		if err := ctx.Validate(command); err != nil {
+			return err
+		}
+
+		if err := e.resetPassHandler.Handle(ctx.Request().Context(), command); err != nil {
+			if errors.Is(err, customerror.ErrBaseNoPermission) ||
+				errors.Is(err, customerror.ErrCommandNil) ||
+				errors.Is(err, customerror.ErrValidationFailed) {
+				return err
+			}
+
+			switch {
+			case errors.Is(err, ErrUserNotFound):
+				return httperror.New(http.StatusNotFound, "User not found").WithInternal(err)
+			default:
+				return httperror.New(http.StatusInternalServerError, err.Error()).WithInternal(err)
+			}
+		}
+
+		return ctx.JSON(http.StatusOK, map[string]string{"message": "Password updated"})
 	}
 }

@@ -57,7 +57,8 @@ func (b *ApplicationBuilder) AddFeatures() error {
 		dig.As(new(register.PasswordHasher)),
 		dig.As(new(requestemailverification.PasswordHasher)),
 		dig.As(new(login.PasswordChecker)),
-		dig.As(new(resetpassword.PasswordHasher))); err != nil {
+		dig.As(new(resetpassword.PasswordHasher)),
+		dig.As(new(manageuser.PasswordHasher))); err != nil {
 		return errors.WrapIf(err, "failed to provide argon password hasher")
 	}
 
